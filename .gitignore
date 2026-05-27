@@ -1,0 +1,27 @@
+# Environment
+.env
+.env.local
+.env.production
+
+# MCP config (contains service role key)
+.mcp.json
+
+# Expo
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Supabase
+supabase/.temp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
