@@ -1,27 +1,41 @@
-# Environment
-.env
-.env.local
-.env.production
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-# MCP config (contains service role key)
-.mcp.json
+# dependencies
+node_modules/
 
 # Expo
-node_modules/
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
-# Supabase
-supabase/.temp/
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# OS
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
 .DS_Store
-Thumbs.db
+*.pem
 
-# Logs
-*.log
-npm-debug.log*
+# local env files
+.env*.local
 
-# TypeScript
+# typescript
 *.tsbuildinfo
+
+# generated native folders
+/ios
+/android
