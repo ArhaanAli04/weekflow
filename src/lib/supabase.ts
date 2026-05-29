@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type AuthChangeEvent, type AuthError, type Session, type User } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
@@ -18,3 +18,38 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
 });
+
+// Auth helpers
+
+export async function signUp(
+  email: string,
+  password: string,
+  displayName: string,
+): Promise<{ user: User | null; error: AuthError | null }> {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { display_name: displayName } },
+  });
+  return { user: data.user, error };
+}
+
+export async function signIn(
+  email: string,
+  password: string,
+): Promise<{ user: User | null; session: Session | null; error: AuthError | null }> {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  return { user: data.user, session: data.session, error };
+}
+
+export async function signOut(): Promise<{ error: AuthError | null }> {
+  const { error } = await supabase.auth.signOut();
+  return { error };
+}
+
+export function onAuthStateChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void,
+) {
+  const { data } = supabase.auth.onAuthStateChange(callback);
+  return data.subscription;
+}
