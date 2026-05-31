@@ -1,34 +1,23 @@
+import 'react-native-url-polyfill/auto';
 import { useEffect } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { supabase } from '@/lib/supabase';
+import { onAuthStateChange } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { LoadingScreen } from '@/components/LoadingScreen';
 
 export default function RootLayout() {
-  const { session, isLoading, initialize, setSession } = useAuthStore();
-  const router = useRouter();
-  const segments = useSegments();
+  const { isLoading, initialize, setSession } = useAuthStore();
 
   useEffect(() => {
     initialize();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    const subscription = onAuthStateChange((_event, newSession) => {
       setSession(newSession);
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (isLoading) return;
-    const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) {
-      router.replace('/(auth)/login');
-    } else if (session && inAuthGroup) {
-      router.replace('/(tabs)');
-    }
-  }, [session, segments, isLoading]);
 
   if (isLoading) return <LoadingScreen />;
 

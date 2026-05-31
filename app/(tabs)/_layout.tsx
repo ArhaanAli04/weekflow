@@ -1,7 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { ColorValue } from 'react-native';
 import { COLORS } from '@/lib/constants';
+import { useAuthStore } from '@/stores/authStore';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -18,6 +19,8 @@ function tabIcon(name: IoniconName, outlineName: IoniconName) {
 }
 
 export default function TabLayout() {
+  const { session } = useAuthStore();
+  if (!session) return <Redirect href="/(auth)/login" />;
   return (
     <Tabs
       screenOptions={{

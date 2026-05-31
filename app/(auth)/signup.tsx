@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/stores/authStore';
 import { AppText } from '@/components/AppText';
 import { AppInput } from '@/components/AppInput';
 import { AppButton } from '@/components/AppButton';
 import { COLORS } from '@/lib/constants';
 
 export default function SignupScreen() {
+  const { signUp } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -16,11 +17,7 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name: displayName } },
-    });
+    const { error } = await signUp(email, password, displayName);
     setLoading(false);
     if (error) Alert.alert('Sign up failed', error.message);
   };
