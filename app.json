@@ -8,7 +8,8 @@
     "scheme": "weekflow",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arhaan.weekflow"
     },
     "android": {
       "adaptiveIcon": {
