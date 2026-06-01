@@ -299,6 +299,17 @@ These decisions are already made — do not change them:
 
 ---
 
+## Platform Notes
+
+- expo-secure-store is native only. src/lib/supabase.ts uses Platform.OS === 'web' 
+  check to fall back to localStorage on web.
+- victory-native replaced with victory (web-compatible). 
+  Import from 'victory' not 'victory-native'.
+- Testing on web via npx expo start --web (localhost:8082)
+- Package installs use --legacy-peer-deps flag due to peer dependency conflicts
+
+---
+
 ## Do Not Do
 
 - Do not query Supabase directly from components — always go through stores → api.ts

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { immer } from 'zustand/middleware/immer';
 import { type AuthError, type Session, type User } from '@supabase/supabase-js';
 import { supabase, signIn as apiSignIn, signUp as apiSignUp } from '@/lib/supabase';
 import { Profile } from '@/types';
@@ -16,36 +17,62 @@ interface AuthState {
   signOut: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  session: null,
-  user: null,
-  profile: null,
-  isLoading: true,
+export const useAuthStore = create<AuthState>()(
+  immer((set) => ({
+    session: null,
+    user: null,
+    profile: null,
+    isLoading: true,
 
-  initialize: async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    set({ session, user: session?.user ?? null, isLoading: false });
-  },
+    initialize: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      set((draft) => {
+        draft.session = session;
+        draft.user = session?.user ?? null;
+        draft.isLoading = false;
+      });
+    },
 
-  setSession: (session) =>
-    set({ session, user: session?.user ?? null, isLoading: false }),
+    setSession: (session) =>
+      set((draft) => {
+        draft.session = session;
+        draft.user = session?.user ?? null;
+        draft.isLoading = false;
+      }),
 
-  setProfile: (profile) => set({ profile }),
+    setProfile: (profile) =>
+      set((draft) => {
+        draft.profile = profile;
+      }),
 
-  signIn: async (email, password) => {
-    const { user, session, error } = await apiSignIn(email, password);
-    if (!error) set({ user, session });
-    return { error };
-  },
+    signIn: async (email, password) => {
+      const { user, session, error } = await apiSignIn(email, password);
+      if (!error) {
+        set((draft) => {
+          draft.user = user;
+          draft.session = session;
+        });
+      }
+      return { error };
+    },
 
-  signUp: async (email, password, displayName) => {
-    const { user, error } = await apiSignUp(email, password, displayName);
-    if (!error && user) set({ user });
-    return { error };
-  },
+    signUp: async (email, password, displayName) => {
+      const { user, error } = await apiSignUp(email, password, displayName);
+      if (!error && user) {
+        set((draft) => {
+          draft.user = user;
+        });
+      }
+      return { error };
+    },
 
-  signOut: async () => {
-    await supabase.auth.signOut();
-    set({ session: null, user: null, profile: null });
-  },
-}));
+    signOut: async () => {
+      await supabase.auth.signOut();
+      set((draft) => {
+        draft.session = null;
+        draft.user = null;
+        draft.profile = null;
+      });
+    },
+  }))
+);
