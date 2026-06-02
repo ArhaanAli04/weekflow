@@ -4,30 +4,46 @@ import { AppText } from './AppText';
 import { COLORS } from '@/lib/constants';
 
 interface AppInputProps extends TextInputProps {
+  label?: string;
+  error?: string;
   showCharCount?: boolean;
 }
 
-export function AppInput({ maxLength, showCharCount, style, value, ...props }: AppInputProps) {
+export function AppInput({ label, error, maxLength, showCharCount, style, value, ...props }: AppInputProps) {
   return (
     <View>
+      {label !== undefined && (
+        <AppText size="sm" weight="medium" style={styles.label}>{label}</AppText>
+      )}
       <TextInput
-        style={[styles.input, style]}
+        style={[styles.input, error !== undefined && styles.inputError, style]}
         placeholderTextColor={COLORS.TEXT_MUTED}
         selectionColor={COLORS.ACCENT}
         maxLength={maxLength}
         value={value}
         {...props}
       />
-      {showCharCount && maxLength !== undefined && (
-        <AppText variant="muted" size="xs" style={styles.counter}>
-          {(value?.length ?? 0)}/{maxLength}
-        </AppText>
-      )}
+      <View style={styles.footer}>
+        {error !== undefined ? (
+          <AppText size="xs" style={styles.errorText}>{error}</AppText>
+        ) : (
+          <View />
+        )}
+        {showCharCount && maxLength !== undefined && (
+          <AppText variant="muted" size="xs">
+            {(value?.length ?? 0)}/{maxLength}
+          </AppText>
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  label: {
+    color: COLORS.TEXT_SECONDARY,
+    marginBottom: 6,
+  },
   input: {
     backgroundColor: COLORS.SURFACE,
     borderWidth: 1,
@@ -38,8 +54,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
   },
-  counter: {
-    textAlign: 'right',
+  inputError: {
+    borderColor: COLORS.DANGER,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginTop: 4,
+  },
+  errorText: {
+    color: COLORS.DANGER,
   },
 });
