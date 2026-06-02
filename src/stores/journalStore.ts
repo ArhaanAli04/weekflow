@@ -2,53 +2,52 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { DailyLog } from '@/types';
 import * as api from '@/lib/api';
+import { supabase } from '@/lib/supabase';
+import { getWeekId } from '@/utils/weekUtils';
 
 interface JournalState {
-  logs: Record<string, DailyLog[]>;
-  isLoading: boolean;
+  logs: Record<string, DailyLog>; // keyed by log_date ISO string (e.g. '2025-05-19')
+  loading: boolean;
   error: string | null;
-  loadLogs: (weekId: string) => Promise<void>;
-  saveLog: (log: Omit<DailyLog, 'id' | 'created_at'>) => Promise<void>;
+  loadWeekLogs: (weekId: string) => Promise<void>;
+  upsertLog: (date: string, content: string) => Promise<void>;
 }
 
 export const useJournalStore = create<JournalState>()(
   immer((set) => ({
     logs: {},
-    isLoading: false,
+    loading: false,
     error: null,
 
-    loadLogs: async (weekId) => {
+    loadWeekLogs: async (weekId) => {
       set((draft) => {
-        draft.isLoading = true;
+        draft.loading = true;
         draft.error = null;
       });
       const { data, error } = await api.fetchLogsForWeek(weekId);
-      set((draft) => {
-        draft.isLoading = false;
-      });
+      set((draft) => { draft.loading = false; });
       if (error) {
-        set((draft) => {
-          draft.error = error.message;
-        });
+        set((draft) => { draft.error = error.message; });
         return;
       }
       set((draft) => {
-        draft.logs[weekId] = data ?? [];
+        (data ?? []).forEach((log) => { draft.logs[log.log_date] = log; });
       });
     },
 
-    saveLog: async (log) => {
-      const { data, error } = await api.upsertDailyLog(log);
-      if (error || !data) return;
-      set((draft) => {
-        if (!draft.logs[log.week_id]) draft.logs[log.week_id] = [];
-        const idx = draft.logs[log.week_id].findIndex((l) => l.log_date === log.log_date);
-        if (idx >= 0) {
-          draft.logs[log.week_id][idx] = data;
-        } else {
-          draft.logs[log.week_id].push(data);
-        }
+    upsertLog: async (date, content) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      // Use local noon to safely derive the week regardless of timezone offset
+      const week_id = getWeekId(new Date(date + 'T12:00:00'));
+      const { data, error } = await api.upsertDailyLog({
+        week_id,
+        user_id: user.id,
+        log_date: date,
+        content,
       });
+      if (error || !data) return;
+      set((draft) => { draft.logs[date] = data; });
     },
   }))
 );

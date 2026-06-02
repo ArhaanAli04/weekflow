@@ -13,16 +13,16 @@ import { gradeToLabel } from '@/utils/reportUtils';
 
 export default function ReportScreen() {
   const { currentWeekId } = useWeekStore();
-  const { reports, isGenerating, error, fetchReport, generateReport, clearError } =
+  const { reports, loading, error, loadReport, generateReport, clearError } =
     useReportStore();
 
   const report = reports[currentWeekId];
 
   useEffect(() => {
-    fetchReport(currentWeekId);
+    loadReport(currentWeekId);
   }, [currentWeekId]);
 
-  if (isGenerating) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />;
 
   return (
     <SafeAreaView style={styles.container}>

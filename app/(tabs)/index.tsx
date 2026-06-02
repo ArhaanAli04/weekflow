@@ -14,13 +14,13 @@ import { getWeekLabel } from '@/utils/weekUtils';
 export default function ThisWeekScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
-  const { currentWeekId, weeks, tasks, isLoading, loadCurrentWeek } = useWeekStore();
+  const { currentWeekId, weeks, tasks, loading, loadCurrentWeek } = useWeekStore();
 
   useEffect(() => {
     loadCurrentWeek();
   }, [currentWeekId]);
 
-  if (isLoading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />;
 
   const week = weeks[currentWeekId];
   const weekTasks = tasks[currentWeekId] ?? [];

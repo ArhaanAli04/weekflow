@@ -9,6 +9,8 @@ import {
   UpdateTaskInput,
 } from '@/types';
 
+// ─── Weeks ───────────────────────────────────────────────────────────────────
+
 export async function fetchWeek(weekId: string) {
   return supabase.from('weeks').select('*').eq('id', weekId).single<Week>();
 }
@@ -16,6 +18,15 @@ export async function fetchWeek(weekId: string) {
 export async function upsertWeek(week: Partial<Week> & { id: string; user_id: string }) {
   return supabase.from('weeks').upsert(week).select().single<Week>();
 }
+
+export async function patchWeek(
+  weekId: string,
+  patch: Partial<Omit<Week, 'id' | 'user_id' | 'created_at'>>,
+) {
+  return supabase.from('weeks').update(patch).eq('id', weekId).select().single<Week>();
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
 
 export async function fetchTasksForWeek(weekId: string) {
   return supabase
@@ -39,6 +50,8 @@ export async function deleteTask(taskId: string) {
   return supabase.from('tasks').delete().eq('id', taskId);
 }
 
+// ─── Daily Logs ──────────────────────────────────────────────────────────────
+
 export async function fetchLogsForWeek(weekId: string) {
   return supabase
     .from('daily_logs')
@@ -56,6 +69,8 @@ export async function upsertDailyLog(log: Omit<DailyLog, 'id' | 'created_at'>) {
     .single<DailyLog>();
 }
 
+// ─── Reports ─────────────────────────────────────────────────────────────────
+
 export async function fetchReport(weekId: string) {
   return supabase.from('reports').select('*').eq('week_id', weekId).single<Report>();
 }
@@ -70,10 +85,30 @@ export async function fetchRecentReports(userId: string, limit = 4) {
     .returns<Report[]>();
 }
 
+export async function upsertReport(
+  report: Omit<Report, 'id' | 'created_at'> & { id?: string },
+) {
+  return supabase
+    .from('reports')
+    .upsert(report, { onConflict: 'week_id' })
+    .select()
+    .single<Report>();
+}
+
 export async function generateReport(weekId: string) {
   return supabase.functions.invoke('generate-report', { body: { weekId } });
 }
 
+// ─── Streaks ─────────────────────────────────────────────────────────────────
+
 export async function fetchStreak(userId: string) {
   return supabase.from('streaks').select('*').eq('user_id', userId).single<Streak>();
+}
+
+export async function upsertStreak(streak: Streak) {
+  return supabase
+    .from('streaks')
+    .upsert(streak, { onConflict: 'user_id' })
+    .select()
+    .single<Streak>();
 }

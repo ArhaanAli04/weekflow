@@ -1,21 +1,26 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { Week, Task, CreateTaskInput, UpdateTaskInput } from '@/types';
+import { Week, Task, CreateTaskInput } from '@/types';
 import * as api from '@/lib/api';
-import { getWeekId } from '@/utils/weekUtils';
+import { supabase } from '@/lib/supabase';
+import { getWeekId, generateEmptyWeek } from '@/utils/weekUtils';
+
+type WeekPatch = Partial<Omit<Week, 'id' | 'user_id' | 'created_at'>>;
 
 interface WeekState {
   currentWeekId: string;
   weeks: Record<string, Week>;
   tasks: Record<string, Task[]>;
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
-  setCurrentWeekId: (weekId: string) => void;
   loadCurrentWeek: () => Promise<void>;
   loadWeek: (weekId: string) => Promise<void>;
-  addTask: (input: CreateTaskInput & { user_id: string }) => Promise<void>;
+  createWeekIfNotExists: (weekId: string) => Promise<void>;
+  updateWeek: (weekId: string, patch: WeekPatch) => Promise<void>;
+  addTask: (weekId: string, input: CreateTaskInput) => Promise<void>;
   toggleTask: (taskId: string, weekId: string) => Promise<void>;
-  removeTask: (taskId: string, weekId: string) => Promise<void>;
+  deleteTask: (taskId: string, weekId: string) => Promise<void>;
+  loadTasksForWeek: (weekId: string) => Promise<void>;
 }
 
 export const useWeekStore = create<WeekState>()(
@@ -23,13 +28,8 @@ export const useWeekStore = create<WeekState>()(
     currentWeekId: getWeekId(),
     weeks: {},
     tasks: {},
-    isLoading: false,
+    loading: false,
     error: null,
-
-    setCurrentWeekId: (weekId) =>
-      set((draft) => {
-        draft.currentWeekId = weekId;
-      }),
 
     loadCurrentWeek: async () => {
       await get().loadWeek(get().currentWeekId);
@@ -37,7 +37,7 @@ export const useWeekStore = create<WeekState>()(
 
     loadWeek: async (weekId) => {
       set((draft) => {
-        draft.isLoading = true;
+        draft.loading = true;
         draft.error = null;
       });
       const [weekResult, tasksResult] = await Promise.all([
@@ -46,25 +46,57 @@ export const useWeekStore = create<WeekState>()(
       ]);
       if (weekResult.error || tasksResult.error) {
         set((draft) => {
-          draft.isLoading = false;
+          draft.loading = false;
           draft.error =
             weekResult.error?.message ?? tasksResult.error?.message ?? 'Failed to load week';
         });
         return;
       }
       set((draft) => {
-        draft.isLoading = false;
-        draft.weeks[weekId] = weekResult.data!;
+        draft.loading = false;
+        if (weekResult.data) draft.weeks[weekId] = weekResult.data;
         draft.tasks[weekId] = tasksResult.data ?? [];
       });
     },
 
-    addTask: async (input) => {
-      const { data, error } = await api.createTask(input);
+    createWeekIfNotExists: async (weekId) => {
+      if (get().weeks[weekId]) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: existing, error } = await api.fetchWeek(weekId);
+      if (!error && existing) {
+        set((draft) => { draft.weeks[weekId] = existing; });
+        return;
+      }
+      const emptyWeek = generateEmptyWeek(weekId, user.id);
+      const { data, error: createError } = await api.upsertWeek(emptyWeek);
+      if (!createError && data) {
+        set((draft) => { draft.weeks[weekId] = data; });
+      }
+    },
+
+    updateWeek: async (weekId, patch) => {
+      const prev = get().weeks[weekId];
+      if (prev) {
+        set((draft) => { draft.weeks[weekId] = { ...prev, ...patch }; });
+      }
+      const { data, error } = await api.patchWeek(weekId, patch);
+      if (error) {
+        if (prev) set((draft) => { draft.weeks[weekId] = prev; });
+        set((draft) => { draft.error = error.message; });
+      } else if (data) {
+        set((draft) => { draft.weeks[weekId] = data; });
+      }
+    },
+
+    addTask: async (weekId, input) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await api.createTask({ ...input, user_id: user.id });
       if (error || !data) return;
       set((draft) => {
-        if (!draft.tasks[input.week_id]) draft.tasks[input.week_id] = [];
-        draft.tasks[input.week_id].push(data);
+        if (!draft.tasks[weekId]) draft.tasks[weekId] = [];
+        draft.tasks[weekId].push(data);
       });
     },
 
@@ -90,7 +122,7 @@ export const useWeekStore = create<WeekState>()(
       }
     },
 
-    removeTask: async (taskId, weekId) => {
+    deleteTask: async (taskId, weekId) => {
       const task = (get().tasks[weekId] ?? []).find((t) => t.id === taskId);
       set((draft) => {
         draft.tasks[weekId] = (draft.tasks[weekId] ?? []).filter((t) => t.id !== taskId);
@@ -102,6 +134,15 @@ export const useWeekStore = create<WeekState>()(
           draft.tasks[weekId].push(task);
         });
       }
+    },
+
+    loadTasksForWeek: async (weekId) => {
+      const { data, error } = await api.fetchTasksForWeek(weekId);
+      if (error) {
+        set((draft) => { draft.error = error.message; });
+        return;
+      }
+      set((draft) => { draft.tasks[weekId] = data ?? []; });
     },
   }))
 );

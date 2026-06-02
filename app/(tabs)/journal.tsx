@@ -8,22 +8,33 @@ import { AppCard } from '@/components/AppCard';
 import { LoadingScreen } from '@/components/LoadingScreen';
 import { COLORS, VALIDATION } from '@/lib/constants';
 import { useJournalStore } from '@/stores/journalStore';
-import { useAuthStore } from '@/stores/authStore';
 import { useWeekStore } from '@/stores/weekStore';
+import { getDatesInWeek } from '@/utils/weekUtils';
+
+function localDateString(d: Date = new Date()): string {
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
 
 export default function JournalScreen() {
-  const { user } = useAuthStore();
   const { currentWeekId } = useWeekStore();
-  const { logs, isLoading, loadLogs, saveLog } = useJournalStore();
+  const { logs, loading, loadWeekLogs, upsertLog } = useJournalStore();
   const [content, setContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
-  const weekLogs = logs[currentWeekId] ?? [];
-  const todayLog = weekLogs.find((l) => l.log_date === today);
+  const today = localDateString();
+  const todayLog = logs[today];
+
+  const weekDates = getDatesInWeek(currentWeekId).map(localDateString);
+  const weekLogs = weekDates
+    .map((date) => logs[date])
+    .filter((log): log is NonNullable<typeof log> => log !== undefined);
 
   useEffect(() => {
-    loadLogs(currentWeekId);
+    loadWeekLogs(currentWeekId);
   }, [currentWeekId]);
 
   useEffect(() => {
@@ -31,18 +42,13 @@ export default function JournalScreen() {
   }, [todayLog?.content]);
 
   const handleSave = async () => {
-    if (!user || !content.trim()) return;
+    if (!content.trim()) return;
     setIsSaving(true);
-    await saveLog({
-      week_id: currentWeekId,
-      user_id: user.id,
-      log_date: today,
-      content: content.trim(),
-    });
+    await upsertLog(today, content.trim());
     setIsSaving(false);
   };
 
-  if (isLoading) return <LoadingScreen />;
+  if (loading) return <LoadingScreen />;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,14 +81,16 @@ export default function JournalScreen() {
             />
           </AppCard>
 
-          {weekLogs.filter((l) => l.log_date !== today).map((log) => (
-            <AppCard key={log.id} style={styles.card}>
-              <AppText variant="secondary" size="sm" style={styles.dateLabel}>
-                {log.log_date}
-              </AppText>
-              <AppText>{log.content}</AppText>
-            </AppCard>
-          ))}
+          {weekLogs
+            .filter((log) => log.log_date !== today)
+            .map((log) => (
+              <AppCard key={log.id} style={styles.card}>
+                <AppText variant="secondary" size="sm" style={styles.dateLabel}>
+                  {log.log_date}
+                </AppText>
+                <AppText>{log.content}</AppText>
+              </AppCard>
+            ))}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

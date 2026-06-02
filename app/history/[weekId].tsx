@@ -14,16 +14,16 @@ import { getWeekLabel } from '@/utils/weekUtils';
 export default function PastWeekScreen() {
   const { weekId } = useLocalSearchParams<{ weekId: string }>();
   const router = useRouter();
-  const { weeks, tasks, isLoading, loadWeek } = useWeekStore();
-  const { reports, fetchReport } = useReportStore();
+  const { weeks, tasks, loading, loadWeek } = useWeekStore();
+  const { reports, loadReport } = useReportStore();
 
   useEffect(() => {
     if (!weekId) return;
     loadWeek(weekId);
-    fetchReport(weekId);
+    loadReport(weekId);
   }, [weekId]);
 
-  if (isLoading || !weekId) return <LoadingScreen />;
+  if (loading || !weekId) return <LoadingScreen />;
 
   const week = weeks[weekId];
   const weekTasks = tasks[weekId] ?? [];
