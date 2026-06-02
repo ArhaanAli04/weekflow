@@ -29,7 +29,7 @@ export const useReportStore = create<ReportState>()(
       set((draft) => { draft.error = null; }),
 
     loadReport: async (weekId) => {
-      const { data, error } = await api.fetchReport(weekId);
+      const { data, error } = await api.getReport(weekId);
       if (error || !data) return;
       set((draft) => { draft.reports[weekId] = data; });
     },
@@ -37,7 +37,7 @@ export const useReportStore = create<ReportState>()(
     saveReport: async (weekId, data) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: saved, error } = await api.upsertReport({
+      const { data: saved, error } = await api.saveReport({
         ...data,
         week_id: weekId,
         user_id: user.id,
@@ -68,7 +68,7 @@ export const useReportStore = create<ReportState>()(
     loadStreak: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data, error } = await api.fetchStreak(user.id);
+      const { data, error } = await api.getStreak(user.id);
       if (error || !data) return;
       set((draft) => { draft.streaks = data; });
     },

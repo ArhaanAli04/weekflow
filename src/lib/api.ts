@@ -1,17 +1,12 @@
+import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import {
-  Week,
-  Task,
-  DailyLog,
-  Report,
-  Streak,
-  CreateTaskInput,
-  UpdateTaskInput,
-} from '@/types';
+import { Week, Task, DailyLog, Report, Streak, CreateTaskInput } from '@/types';
+
+type TaskPatch = Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'week_id'>>;
 
 // ─── Weeks ───────────────────────────────────────────────────────────────────
 
-export async function fetchWeek(weekId: string) {
+export async function getWeek(weekId: string) {
   return supabase.from('weeks').select('*').eq('id', weekId).single<Week>();
 }
 
@@ -19,16 +14,18 @@ export async function upsertWeek(week: Partial<Week> & { id: string; user_id: st
   return supabase.from('weeks').upsert(week).select().single<Week>();
 }
 
-export async function patchWeek(
-  weekId: string,
-  patch: Partial<Omit<Week, 'id' | 'user_id' | 'created_at'>>,
-) {
-  return supabase.from('weeks').update(patch).eq('id', weekId).select().single<Week>();
+export async function getAllWeeks(userId: string) {
+  return supabase
+    .from('weeks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('id', { ascending: false })
+    .returns<Week[]>();
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
 
-export async function fetchTasksForWeek(weekId: string) {
+export async function getTasksForWeek(weekId: string) {
   return supabase
     .from('tasks')
     .select('*')
@@ -41,18 +38,26 @@ export async function createTask(input: CreateTaskInput & { user_id: string }) {
   return supabase.from('tasks').insert(input).select().single<Task>();
 }
 
-export async function updateTask(input: UpdateTaskInput) {
-  const { id, ...updates } = input;
-  return supabase.from('tasks').update(updates).eq('id', id).select().single<Task>();
+export async function updateTask(id: string, patch: TaskPatch) {
+  return supabase.from('tasks').update(patch).eq('id', id).select().single<Task>();
 }
 
-export async function deleteTask(taskId: string) {
-  return supabase.from('tasks').delete().eq('id', taskId);
+export async function deleteTask(id: string) {
+  return supabase.from('tasks').delete().eq('id', id);
+}
+
+export async function getUnfinishedTasksFromWeek(weekId: string) {
+  return supabase
+    .from('tasks')
+    .select('*')
+    .eq('week_id', weekId)
+    .eq('done', false)
+    .returns<Task[]>();
 }
 
 // ─── Daily Logs ──────────────────────────────────────────────────────────────
 
-export async function fetchLogsForWeek(weekId: string) {
+export async function getLogsForWeek(weekId: string) {
   return supabase
     .from('daily_logs')
     .select('*')
@@ -61,33 +66,31 @@ export async function fetchLogsForWeek(weekId: string) {
     .returns<DailyLog[]>();
 }
 
-export async function upsertDailyLog(log: Omit<DailyLog, 'id' | 'created_at'>) {
+export async function upsertDailyLog(weekId: string, date: string, content: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return {
+      data: null,
+      error: { message: 'Not authenticated', details: '', hint: '', code: '401' } as PostgrestError,
+    };
+  }
   return supabase
     .from('daily_logs')
-    .upsert(log, { onConflict: 'user_id,log_date' })
+    .upsert(
+      { week_id: weekId, user_id: user.id, log_date: date, content },
+      { onConflict: 'user_id,log_date' },
+    )
     .select()
     .single<DailyLog>();
 }
 
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
-export async function fetchReport(weekId: string) {
+export async function getReport(weekId: string) {
   return supabase.from('reports').select('*').eq('week_id', weekId).single<Report>();
 }
 
-export async function fetchRecentReports(userId: string, limit = 4) {
-  return supabase
-    .from('reports')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-    .returns<Report[]>();
-}
-
-export async function upsertReport(
-  report: Omit<Report, 'id' | 'created_at'> & { id?: string },
-) {
+export async function saveReport(report: Omit<Report, 'id' | 'created_at'> & { id?: string }) {
   return supabase
     .from('reports')
     .upsert(report, { onConflict: 'week_id' })
@@ -101,7 +104,7 @@ export async function generateReport(weekId: string) {
 
 // ─── Streaks ─────────────────────────────────────────────────────────────────
 
-export async function fetchStreak(userId: string) {
+export async function getStreak(userId: string) {
   return supabase.from('streaks').select('*').eq('user_id', userId).single<Streak>();
 }
 

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { DailyLog } from '@/types';
 import * as api from '@/lib/api';
-import { supabase } from '@/lib/supabase';
 import { getWeekId } from '@/utils/weekUtils';
 
 interface JournalState {
@@ -24,7 +23,7 @@ export const useJournalStore = create<JournalState>()(
         draft.loading = true;
         draft.error = null;
       });
-      const { data, error } = await api.fetchLogsForWeek(weekId);
+      const { data, error } = await api.getLogsForWeek(weekId);
       set((draft) => { draft.loading = false; });
       if (error) {
         set((draft) => { draft.error = error.message; });
@@ -36,16 +35,9 @@ export const useJournalStore = create<JournalState>()(
     },
 
     upsertLog: async (date, content) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       // Use local noon to safely derive the week regardless of timezone offset
       const week_id = getWeekId(new Date(date + 'T12:00:00'));
-      const { data, error } = await api.upsertDailyLog({
-        week_id,
-        user_id: user.id,
-        log_date: date,
-        content,
-      });
+      const { data, error } = await api.upsertDailyLog(week_id, date, content);
       if (error || !data) return;
       set((draft) => { draft.logs[date] = data; });
     },
