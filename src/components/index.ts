@@ -5,3 +5,7 @@ export { AppInput } from './AppInput';
 export { AppBadge } from './AppBadge';
 export { LoadingScreen } from './LoadingScreen';
 export { EmptyState } from './EmptyState';
+export { TaskCard } from './TaskCard';
+export { AddTaskModal } from './AddTaskModal';
+export { WeekProgressBar } from './WeekProgressBar';
+export { CategoryBreakdown } from './CategoryBreakdown';
