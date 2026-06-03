@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+function getPrevWeekId(weekId: string): string {
+  const date = new Date(weekId);
+  date.setDate(date.getDate() - 7);
+  return date.toISOString().split('T')[0];
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -59,14 +65,44 @@ Deno.serve(async (req: Request) => {
     const totalTasks = tasks.length;
     const completedTasks = tasks.filter((t) => t.done).length;
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const totalEstimatedHours = tasks.reduce((sum, t) => sum + ((t.estimated_hours as number) ?? 0), 0);
+    const focusHours = (week.focus_hours as number) ?? 0;
 
-    const taskBreakdown = tasks
+    // Group completion by category
+    const byCategory = tasks.reduce((acc, t) => {
+      const cat = t.category as string;
+      if (!acc[cat]) acc[cat] = { total: 0, done: 0, estimatedHours: 0 };
+      acc[cat].total++;
+      acc[cat].estimatedHours += (t.estimated_hours as number) ?? 0;
+      if (t.done) acc[cat].done++;
+      return acc;
+    }, {} as Record<string, { total: number; done: number; estimatedHours: number }>);
+
+    const categoryBreakdown = Object.entries(byCategory)
+      .map(([cat, { total, done, estimatedHours }]) =>
+        `  ${cat}: ${done}/${total} tasks done (~${estimatedHours}h estimated)`)
+      .join('\n') || '  No tasks';
+
+    // Group completion by priority
+    const byPriority = tasks.reduce((acc, t) => {
+      const p = t.priority as string;
+      if (!acc[p]) acc[p] = { total: 0, done: 0 };
+      acc[p].total++;
+      if (t.done) acc[p].done++;
+      return acc;
+    }, {} as Record<string, { total: number; done: number }>);
+
+    const priorityBreakdown = Object.entries(byPriority)
+      .map(([p, { total, done }]) => `  ${p}: ${done}/${total} done`)
+      .join('\n') || '  No tasks';
+
+    const taskList = tasks
       .map((t) => `- [${t.done ? 'x' : ' '}] ${t.title} (${t.category}, ${t.priority} priority, ~${t.estimated_hours}h)`)
       .join('\n') || 'No tasks';
 
-    const journalEntries = logs
-      .map((l) => `${l.log_date}: ${l.content}`)
-      .join('\n') || 'No journal entries';
+    const journalEntries = logs.length > 0
+      ? logs.map((l) => `  ${l.log_date}: ${l.content}`).join('\n')
+      : '  No journal entries this week';
 
     const trendContext = recentReports.length > 0
       ? recentReports.map((r) => `${r.week_id}: ${r.grade} (${r.overall_score}/100)`).join(', ')
@@ -77,28 +113,36 @@ Deno.serve(async (req: Request) => {
 WEEK: ${weekId} (${week.label ?? 'Untitled Week'})
 INTENTION: ${week.intention ?? 'Not set'}
 ENERGY: Start ${week.energy_start ?? '?'}/5 → End ${week.energy_end ?? '?'}/5
-FOCUS HOURS: ${week.focus_hours ?? 0}h
+FOCUS HOURS LOGGED: ${focusHours}h (estimated across all tasks: ${totalEstimatedHours}h)
 
-TASKS (${completedTasks}/${totalTasks} completed = ${completionRate}%):
-${taskBreakdown}
+TASK COMPLETION: ${completedTasks}/${totalTasks} (${completionRate}%)
+
+BY CATEGORY:
+${categoryBreakdown}
+
+BY PRIORITY:
+${priorityBreakdown}
+
+FULL TASK LIST:
+${taskList}
 
 JOURNAL ENTRIES:
 ${journalEntries}
 
-RECENT PERFORMANCE TREND: ${trendContext}
+RECENT PERFORMANCE TREND (last 4 weeks): ${trendContext}
 
-Respond with a JSON object (no markdown, just raw JSON) with these exact fields:
+Respond with ONLY a raw JSON object — no markdown, no code fences, no extra text. Use these exact fields:
 - overallScore: number 0-100
-- grade: "S" | "A" | "B" | "C" | "D"
-- headline: string (one punchy sentence)
-- wins: string[] (2-4 items)
-- improvements: string[] (2-4 items)
-- capacityInsight: string
-- focusSuggestion: string
-- nextWeekGoal: string
-- motivationalNote: string
-- dailyActivityInsight: string
-- priorityAnalysis: string`;
+- grade: "S" | "A" | "B" | "C" | "D"  (S=95+, A=80-94, B=65-79, C=50-64, D=<50)
+- headline: string — max 12 words, punchy and personal to this week
+- wins: string[] — 2-4 specific achievements from this week
+- improvements: string[] — 2-4 concrete, actionable suggestions
+- capacityInsight: string — compare the ${totalEstimatedHours}h estimated to the ${focusHours}h actually logged; were the estimates realistic? did they over- or under-plan?
+- focusSuggestion: string — specific advice based on their focus hour pattern and task completion rate
+- nextWeekGoal: string — one concrete, measurable goal for next week based on what happened this week
+- motivationalNote: string — encouraging closing note, 1-2 sentences
+- dailyActivityInsight: string — directly reference specific journal entries by date; identify patterns, highlight standout activities, note energy or mood shifts across the week
+- priorityAnalysis: string — explicitly analyse the High/Medium/Low priority completion rates shown above; did they focus on the right things or get distracted by lower-priority work?`;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -143,15 +187,23 @@ Respond with a JSON object (no markdown, just raw JSON) with these exact fields:
         .single();
 
       const existing = existingStreak as Record<string, unknown> | null;
-      const newStreak = ((existing?.current_streak as number) ?? 0) + 1;
+      const prevWeekId = getPrevWeekId(weekId);
+      // Only extend the streak if the previous week was the last qualifying week
+      const isConsecutive = existing?.last_qualifying_week === prevWeekId;
+      const newStreak = isConsecutive
+        ? ((existing?.current_streak as number) ?? 0) + 1
+        : 1;
 
-      await supabase.from('streaks').upsert({
-        user_id: user.id,
-        current_streak: newStreak,
-        longest_streak: Math.max(newStreak, (existing?.longest_streak as number) ?? 0),
-        last_qualifying_week: weekId,
-        updated_at: new Date().toISOString(),
-      });
+      await supabase.from('streaks').upsert(
+        {
+          user_id: user.id,
+          current_streak: newStreak,
+          longest_streak: Math.max(newStreak, (existing?.longest_streak as number) ?? 0),
+          last_qualifying_week: weekId,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
     }
 
     await supabase.from('weeks').update({ report_generated: true }).eq('id', weekId);
