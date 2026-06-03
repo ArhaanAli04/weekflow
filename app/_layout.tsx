@@ -2,6 +2,7 @@ import 'react-native-url-polyfill/auto';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Toast from 'react-native-toast-message';
 import { onAuthStateChange } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { LoadingScreen } from '@/components/LoadingScreen';
@@ -30,6 +31,7 @@ export default function RootLayout() {
         <Stack.Screen name="history/[weekId]" />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack>
+      <Toast />
     </>
   );
 }

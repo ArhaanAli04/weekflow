@@ -6,7 +6,9 @@ import {
   Pressable,
   TextInput,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +64,7 @@ export default function ThisWeekScreen() {
     streaks,
     loadStreak,
     generateReport,
+    updateStreak,
     loading: reportLoading,
     error: reportError,
     clearError,
@@ -166,8 +169,17 @@ export default function ThisWeekScreen() {
   const handleGenerateReport = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await generateReport(currentWeekId);
-    if (!useReportStore.getState().error) {
-      router.push('/report');
+    const { error: genError } = useReportStore.getState();
+    if (genError) {
+      Toast.show({
+        type: 'error',
+        text1: 'Report generation failed',
+        text2: genError,
+        visibilityTime: 4000,
+      });
+    } else {
+      await updateStreak(currentWeekId, completionRate);
+      router.push('/(tabs)/report');
     }
   };
 
@@ -183,6 +195,7 @@ export default function ThisWeekScreen() {
   const weekDates = getDatesInWeek(currentWeekId).map(toDateString);
   const journalledDays = weekDates.filter((d) => !!logs[d]).length;
   const completedCount = weekTasks.filter((t) => t.done).length;
+  const completionRate = weekTasks.length > 0 ? Math.round((completedCount / weekTasks.length) * 100) : 0;
   const totalHours = weekTasks.reduce((sum, t) => sum + (t.estimated_hours ?? 0), 0);
   const canGenerate = weekTasks.length > 0 && !reportLoading;
 
@@ -360,12 +373,17 @@ export default function ThisWeekScreen() {
         {/* ── Generate Report ─────────────────────────── */}
         {reportError !== null && (
           <View style={styles.errorRow}>
-            <AppText size="sm" style={{ color: COLORS.DANGER }} numberOfLines={2}>
+            <AppText size="sm" style={[{ color: COLORS.DANGER }, styles.errorText]} numberOfLines={2}>
               {reportError}
             </AppText>
-            <Pressable onPress={clearError} hitSlop={8}>
-              <Ionicons name="close-circle" size={18} color={COLORS.DANGER} />
-            </Pressable>
+            <View style={styles.errorActions}>
+              <Pressable onPress={handleGenerateReport} hitSlop={8}>
+                <AppText size="xs" weight="semibold" style={{ color: COLORS.ACCENT }}>Retry</AppText>
+              </Pressable>
+              <Pressable onPress={clearError} hitSlop={8}>
+                <Ionicons name="close-circle" size={18} color={COLORS.DANGER} />
+              </Pressable>
+            </View>
           </View>
         )}
         <Pressable
@@ -380,14 +398,8 @@ export default function ThisWeekScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.generateBtn}
           >
-            {reportLoading ? (
-              <ActivityIndicator size="small" color={COLORS.TEXT_PRIMARY} />
-            ) : (
-              <>
-                <Ionicons name="sparkles-outline" size={18} color={COLORS.TEXT_PRIMARY} />
-                <AppText weight="semibold">Generate Report</AppText>
-              </>
-            )}
+            <Ionicons name="sparkles-outline" size={18} color={COLORS.TEXT_PRIMARY} />
+            <AppText weight="semibold">Generate Report</AppText>
           </LinearGradient>
         </Pressable>
 
@@ -403,6 +415,16 @@ export default function ThisWeekScreen() {
       >
         <Ionicons name="add" size={28} color={COLORS.TEXT_PRIMARY} />
       </Pressable>
+
+      <Modal visible={reportLoading} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.overlayCard}>
+            <ActivityIndicator size="large" color={COLORS.ACCENT} />
+            <AppText weight="semibold" style={styles.overlayTitle}>Analysing your week...</AppText>
+            <AppText variant="muted" size="sm">This may take a moment</AppText>
+          </View>
+        </View>
+      </Modal>
 
       <AddTaskModal
         visible={showModal}
@@ -543,6 +565,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(239,68,68,0.25)',
   },
+  errorText: { flex: 1 },
+  errorActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  overlayCard: {
+    backgroundColor: COLORS.SURFACE,
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    gap: 12,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    minWidth: 240,
+  },
+  overlayTitle: { color: COLORS.TEXT_PRIMARY },
   generateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
