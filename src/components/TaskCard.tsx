@@ -94,6 +94,11 @@ export function TaskCard({ task, index = 0, onToggle, onDelete }: TaskCardProps)
               <AppBadge label={task.category} color={CATEGORY_COLORS[task.category]} />
               <AppBadge label={task.priority} color={PRIORITY_COLORS[task.priority]} />
               <AppText variant="muted" size="xs">~{task.estimated_hours}h</AppText>
+              {task.carried_over_from !== null && (
+                <View style={styles.carriedBadge}>
+                  <AppText size="xs" style={styles.carriedText}>↩ Carried over</AppText>
+                </View>
+              )}
             </View>
           </View>
         </Pressable>
@@ -134,5 +139,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 72,
+  },
+  carriedBadge: {
+    backgroundColor: 'rgba(99,102,241,0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.3)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  carriedText: {
+    color: COLORS.ACCENT,
   },
 });

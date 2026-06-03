@@ -90,6 +90,7 @@ export interface CreateTaskInput {
   category: TaskCategory;
   priority: TaskPriority;
   estimated_hours: number;
+  carried_over_from?: string | null;
 }
 
 export interface UpdateTaskInput {

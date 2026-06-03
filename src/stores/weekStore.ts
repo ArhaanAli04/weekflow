@@ -11,6 +11,7 @@ interface WeekState {
   currentWeekId: string;
   weeks: Record<string, Week>;
   tasks: Record<string, Task[]>;
+  lastWeekUnfinished: Task[];
   loading: boolean;
   error: string | null;
   loadCurrentWeek: () => Promise<void>;
@@ -21,6 +22,8 @@ interface WeekState {
   toggleTask: (taskId: string, weekId: string) => Promise<void>;
   deleteTask: (taskId: string, weekId: string) => Promise<void>;
   loadTasksForWeek: (weekId: string) => Promise<void>;
+  loadLastWeekUnfinished: (weekId: string) => Promise<void>;
+  carryOverTasks: (currentWeekId: string, tasks: Task[]) => Promise<void>;
 }
 
 export const useWeekStore = create<WeekState>()(
@@ -28,6 +31,7 @@ export const useWeekStore = create<WeekState>()(
     currentWeekId: getWeekId(),
     weeks: {},
     tasks: {},
+    lastWeekUnfinished: [],
     loading: false,
     error: null,
 
@@ -144,6 +148,33 @@ export const useWeekStore = create<WeekState>()(
         return;
       }
       set((draft) => { draft.tasks[weekId] = data ?? []; });
+    },
+
+    loadLastWeekUnfinished: async (weekId) => {
+      const { data } = await api.getUnfinishedTasksFromWeek(weekId);
+      set((draft) => { draft.lastWeekUnfinished = data ?? []; });
+    },
+
+    carryOverTasks: async (weekId, tasks) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const created: Task[] = [];
+      for (const task of tasks) {
+        const { data } = await api.createTask({
+          week_id: weekId,
+          user_id: user.id,
+          title: task.title,
+          category: task.category,
+          priority: task.priority,
+          estimated_hours: task.estimated_hours,
+          carried_over_from: task.week_id,
+        });
+        if (data) created.push(data);
+      }
+      set((draft) => {
+        if (!draft.tasks[weekId]) draft.tasks[weekId] = [];
+        draft.tasks[weekId].push(...created);
+      });
     },
   }))
 );

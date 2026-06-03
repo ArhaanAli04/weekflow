@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import * as SecureStore from 'expo-secure-store';
 import {
   AppText,
   AppCard,
@@ -19,14 +20,17 @@ import {
   CategoryBreakdown,
   TaskCard,
   AddTaskModal,
+  CarryOverModal,
   LoadingScreen,
 } from '@/components';
 import { COLORS, PRIORITY_COLORS } from '@/lib/constants';
 import { useWeekStore } from '@/stores/weekStore';
 import { useReportStore } from '@/stores/reportStore';
 import { useJournalStore } from '@/stores/journalStore';
-import { getWeekLabel, getDatesInWeek } from '@/utils/weekUtils';
+import { getWeekLabel, getDatesInWeek, getPreviousWeekId } from '@/utils/weekUtils';
 import type { TaskPriority } from '@/types';
+
+const CARRYOVER_STORE_KEY = 'carryover_shown_week';
 
 const PRIORITIES: TaskPriority[] = ['High', 'Medium', 'Low'];
 
@@ -44,6 +48,7 @@ export default function ThisWeekScreen() {
     currentWeekId,
     weeks,
     tasks,
+    lastWeekUnfinished,
     loading,
     loadCurrentWeek,
     createWeekIfNotExists,
@@ -51,6 +56,7 @@ export default function ThisWeekScreen() {
     toggleTask,
     deleteTask,
     loadTasksForWeek,
+    loadLastWeekUnfinished,
   } = useWeekStore();
   const {
     streaks,
@@ -67,7 +73,10 @@ export default function ThisWeekScreen() {
 
   const [intentionText, setIntentionText] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showCarryOver, setShowCarryOver] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+
+  const prevWeekId = getPreviousWeekId(currentWeekId);
 
   const intentionDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerInterval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -77,10 +86,25 @@ export default function ThisWeekScreen() {
       await createWeekIfNotExists(currentWeekId);
       await loadCurrentWeek();
       await loadTasksForWeek(currentWeekId);
+
+      const shown = await SecureStore.getItemAsync(CARRYOVER_STORE_KEY);
+      if (shown !== currentWeekId) {
+        await loadLastWeekUnfinished(prevWeekId);
+        const unfinished = useWeekStore.getState().lastWeekUnfinished;
+        if (unfinished.length > 0) {
+          await SecureStore.setItemAsync(CARRYOVER_STORE_KEY, currentWeekId);
+          setShowCarryOver(true);
+        }
+      }
     })();
     loadStreak();
     loadWeekLogs(currentWeekId);
   }, [currentWeekId]);
+
+  const handleReviewLastWeek = async () => {
+    await loadLastWeekUnfinished(prevWeekId);
+    setShowCarryOver(true);
+  };
 
   useEffect(() => {
     setIntentionText(week?.intention ?? '');
@@ -182,6 +206,9 @@ export default function ThisWeekScreen() {
                 </AppText>
               </View>
             )}
+            <Pressable onPress={handleReviewLastWeek} hitSlop={8} style={styles.reviewBtn}>
+              <AppText size="xs" weight="semibold" style={styles.reviewText}>↩ Last Week</AppText>
+            </Pressable>
             <Pressable onPress={() => router.push('/settings')} hitSlop={8}>
               <Ionicons name="settings-outline" size={24} color={COLORS.TEXT_SECONDARY} />
             </Pressable>
@@ -382,6 +409,14 @@ export default function ThisWeekScreen() {
         weekId={currentWeekId}
         onClose={() => setShowModal(false)}
       />
+
+      <CarryOverModal
+        visible={showCarryOver}
+        tasks={lastWeekUnfinished}
+        currentWeekId={currentWeekId}
+        lastWeekId={prevWeekId}
+        onClose={() => setShowCarryOver(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -406,6 +441,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   streakText: { color: '#FF6B00' },
+  reviewBtn: {
+    backgroundColor: 'rgba(99,102,241,0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  reviewText: { color: COLORS.ACCENT },
 
   card: { gap: 10 },
   right: { textAlign: 'right' },
