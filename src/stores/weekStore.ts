@@ -11,11 +11,14 @@ interface WeekState {
   currentWeekId: string;
   weeks: Record<string, Week>;
   tasks: Record<string, Task[]>;
+  allWeekIds: string[];
   lastWeekUnfinished: Task[];
   loading: boolean;
   error: string | null;
   loadCurrentWeek: () => Promise<void>;
   loadWeek: (weekId: string) => Promise<void>;
+  loadAllWeeks: () => Promise<void>;
+  loadAllTasks: () => Promise<void>;
   createWeekIfNotExists: (weekId: string) => Promise<void>;
   updateWeek: (weekId: string, patch: WeekPatch) => Promise<void>;
   addTask: (weekId: string, input: CreateTaskInput) => Promise<void>;
@@ -31,12 +34,43 @@ export const useWeekStore = create<WeekState>()(
     currentWeekId: getWeekId(),
     weeks: {},
     tasks: {},
+    allWeekIds: [],
     lastWeekUnfinished: [],
     loading: false,
     error: null,
 
     loadCurrentWeek: async () => {
       await get().loadWeek(get().currentWeekId);
+    },
+
+    loadAllWeeks: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      set((draft) => { draft.loading = true; });
+      const { data, error } = await api.getAllWeeks(user.id);
+      set((draft) => { draft.loading = false; });
+      if (error || !data) return;
+      set((draft) => {
+        data.forEach((w) => { draft.weeks[w.id] = w; });
+        draft.allWeekIds = data.map((w) => w.id);
+      });
+    },
+
+    loadAllTasks: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await api.getAllTasks(user.id);
+      if (error || !data) return;
+      set((draft) => {
+        const byWeek: Record<string, Task[]> = {};
+        data.forEach((t) => {
+          if (!byWeek[t.week_id]) byWeek[t.week_id] = [];
+          byWeek[t.week_id].push(t);
+        });
+        Object.entries(byWeek).forEach(([wid, ts]) => {
+          draft.tasks[wid] = ts;
+        });
+      });
     },
 
     loadWeek: async (weekId) => {

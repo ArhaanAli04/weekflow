@@ -11,6 +11,7 @@ interface ReportState {
   loading: boolean;
   error: string | null;
   loadReport: (weekId: string) => Promise<void>;
+  loadAllReports: () => Promise<void>;
   saveReport: (weekId: string, data: Omit<Report, 'id' | 'created_at' | 'week_id' | 'user_id'>) => Promise<void>;
   generateReport: (weekId: string) => Promise<void>;
   loadStreak: () => Promise<void>;
@@ -32,6 +33,16 @@ export const useReportStore = create<ReportState>()(
       const { data, error } = await api.getReport(weekId);
       if (error || !data) return;
       set((draft) => { draft.reports[weekId] = data; });
+    },
+
+    loadAllReports: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await api.getAllReports(user.id);
+      if (error || !data) return;
+      set((draft) => {
+        data.forEach((r) => { draft.reports[r.week_id] = r; });
+      });
     },
 
     saveReport: async (weekId, data) => {

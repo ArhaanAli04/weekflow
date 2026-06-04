@@ -10,3 +10,4 @@ export { AddTaskModal } from './AddTaskModal';
 export { WeekProgressBar } from './WeekProgressBar';
 export { CategoryBreakdown } from './CategoryBreakdown';
 export { CarryOverModal } from './CarryOverModal';
+export { ReportView } from './ReportView';

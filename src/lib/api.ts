@@ -84,6 +84,17 @@ export async function upsertDailyLog(weekId: string, date: string, content: stri
     .single<DailyLog>();
 }
 
+// ─── Tasks (bulk) ────────────────────────────────────────────────────────────
+
+export async function getAllTasks(userId: string) {
+  return supabase
+    .from('tasks')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .returns<Task[]>();
+}
+
 // ─── Reports ─────────────────────────────────────────────────────────────────
 
 export async function getReport(weekId: string) {
@@ -96,6 +107,15 @@ export async function saveReport(report: Omit<Report, 'id' | 'created_at'> & { i
     .upsert(report, { onConflict: 'week_id' })
     .select()
     .single<Report>();
+}
+
+export async function getAllReports(userId: string) {
+  return supabase
+    .from('reports')
+    .select('*')
+    .eq('user_id', userId)
+    .order('week_id', { ascending: false })
+    .returns<Report[]>();
 }
 
 export async function generateReport(weekId: string) {
