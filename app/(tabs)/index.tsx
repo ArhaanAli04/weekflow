@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
   Modal,
+  Platform,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,6 +34,17 @@ import { getWeekLabel, getDatesInWeek, getPreviousWeekId } from '@/utils/weekUti
 import type { TaskPriority } from '@/types';
 
 const CARRYOVER_STORE_KEY = 'carryover_shown_week';
+
+const storage = {
+  getItem: (key: string): Promise<string | null> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.getItem(key))
+      : SecureStore.getItemAsync(key),
+  setItem: (key: string, value: string): Promise<void> =>
+    Platform.OS === 'web'
+      ? Promise.resolve(localStorage.setItem(key, value))
+      : SecureStore.setItemAsync(key, value),
+};
 
 const PRIORITIES: TaskPriority[] = ['High', 'Medium', 'Low'];
 
@@ -90,12 +102,12 @@ export default function ThisWeekScreen() {
       await loadCurrentWeek();
       await loadTasksForWeek(currentWeekId);
 
-      const shown = await SecureStore.getItemAsync(CARRYOVER_STORE_KEY);
+      const shown = await storage.getItem(CARRYOVER_STORE_KEY);
       if (shown !== currentWeekId) {
         await loadLastWeekUnfinished(prevWeekId);
         const unfinished = useWeekStore.getState().lastWeekUnfinished;
         if (unfinished.length > 0) {
-          await SecureStore.setItemAsync(CARRYOVER_STORE_KEY, currentWeekId);
+          await storage.setItem(CARRYOVER_STORE_KEY, currentWeekId);
           setShowCarryOver(true);
         }
       }
