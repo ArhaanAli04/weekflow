@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { AppText } from './AppText';
 import { AppInput } from './AppInput';
 import { AppButton } from './AppButton';
@@ -62,6 +63,7 @@ export function AddTaskModal({ visible, weekId, onClose }: AddTaskModalProps) {
       estimated_hours: estimatedHours,
     });
     setLoading(false);
+    Toast.show({ type: 'success', text1: 'Task added', visibilityTime: 2000 });
     handleClose();
   };
 

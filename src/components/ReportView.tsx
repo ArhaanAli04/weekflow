@@ -1,11 +1,6 @@
-import { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { AppText } from './AppText';
 import { AppCard } from './AppCard';
 import { COLORS } from '@/lib/constants';
@@ -33,6 +28,8 @@ interface ReportViewProps {
   focusHours: number;
 }
 
+const ENTER = (index: number) => FadeInDown.delay(index * 100).duration(350);
+
 export function ReportView({ report, weekId, tasks, focusHours }: ReportViewProps) {
   const completedCount = tasks.filter((t) => t.done).length;
   const completionPct =
@@ -49,13 +46,6 @@ export function ReportView({ report, weekId, tasks, focusHours }: ReportViewProp
       ? report.raw_json.priorityAnalysis
       : '';
 
-  const opacity = useSharedValue(0);
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  useEffect(() => {
-    opacity.value = withTiming(1, { duration: 450 });
-  }, []);
-
   const insights = [
     { label: 'Capacity', value: report.capacity_insight, color: COLORS.ACCENT_SECONDARY },
     { label: 'Focus Time', value: report.focus_suggestion, color: COLORS.PINK },
@@ -63,106 +53,124 @@ export function ReportView({ report, weekId, tasks, focusHours }: ReportViewProp
   ];
 
   return (
-    <Animated.View style={[styles.container, animStyle]}>
-      {/* ── Grade Hero ───────────────────────────────── */}
-      <AppCard style={styles.heroCard}>
-        <AppText style={[styles.gradeLetter, { color: gradeColor }]}>
-          {report.grade}
-        </AppText>
-        <AppText variant="secondary">{gradeToLabel(report.grade)}</AppText>
-        <AppText size="lg" weight="semibold" style={{ color: gradeColor }}>
-          {report.overall_score}/100
-        </AppText>
-        <AppText variant="muted" size="sm">{getWeekLabel(weekId)}</AppText>
-        <AppText variant="secondary" style={styles.headline}>{report.headline}</AppText>
-      </AppCard>
+    <View style={styles.container}>
 
-      {/* ── Stats Row ─────────────────────────────────── */}
-      <View style={styles.statsRow}>
-        <AppCard style={styles.statCard}>
-          <AppText size="2xl" weight="bold" style={{ color: COLORS.ACCENT }}>
-            {completionPct}%
+      {/* ── 0: Grade Hero ─────────────────────────────── */}
+      <Animated.View entering={ENTER(0)}>
+        <AppCard style={styles.heroCard}>
+          <AppText style={[styles.gradeLetter, { color: gradeColor }]}>
+            {report.grade}
           </AppText>
-          <AppText variant="muted" size="xs">Completion</AppText>
+          <AppText variant="secondary">{gradeToLabel(report.grade)}</AppText>
+          <AppText size="lg" weight="semibold" style={{ color: gradeColor }}>
+            {report.overall_score}/100
+          </AppText>
+          <AppText variant="muted" size="sm">{getWeekLabel(weekId)}</AppText>
+          <AppText variant="secondary" style={styles.headline}>{report.headline}</AppText>
         </AppCard>
-        <AppCard style={styles.statCard}>
-          <AppText size="2xl" weight="bold">
-            {completedCount}/{tasks.length}
-          </AppText>
-          <AppText variant="muted" size="xs">Tasks Done</AppText>
-        </AppCard>
-        <AppCard style={styles.statCard}>
-          <AppText size="2xl" weight="bold" style={{ color: COLORS.SUCCESS }}>
-            {focusHours}h
-          </AppText>
-          <AppText variant="muted" size="xs">Focus Time</AppText>
-        </AppCard>
-      </View>
+      </Animated.View>
 
-      {/* ── Wins ──────────────────────────────────────── */}
-      <AppCard style={styles.section}>
-        <AppText weight="semibold" style={styles.sectionTitle}>Wins</AppText>
-        {report.wins.map((win, i) => (
-          <View key={i} style={styles.bulletRow}>
-            <AppText style={styles.winBullet}>♦</AppText>
-            <AppText variant="secondary" style={styles.bulletText}>{win}</AppText>
-          </View>
-        ))}
-      </AppCard>
-
-      {/* ── Improvements ──────────────────────────────── */}
-      <AppCard style={styles.section}>
-        <AppText weight="semibold" style={styles.sectionTitle}>Improvements</AppText>
-        {report.improvements.map((item, i) => (
-          <View key={i} style={styles.bulletRow}>
-            <AppText style={styles.improveBullet}>♦</AppText>
-            <AppText variant="secondary" style={styles.bulletText}>{item}</AppText>
-          </View>
-        ))}
-      </AppCard>
-
-      {/* ── AI Insights ───────────────────────────────── */}
-      <AppText weight="semibold" style={styles.sectionLabel}>AI Insights</AppText>
-      {insights.map(({ label, value, color }) => (
-        <View
-          key={label}
-          style={[styles.insightBox, { borderColor: color, backgroundColor: rgba(color, 0.08) }]}
-        >
-          <AppText size="xs" weight="bold" style={[styles.insightLabel, { color }]}>
-            {label.toUpperCase()}
-          </AppText>
-          <AppText variant="secondary" size="sm">{value}</AppText>
+      {/* ── 1: Stats Row ──────────────────────────────── */}
+      <Animated.View entering={ENTER(1)}>
+        <View style={styles.statsRow}>
+          <AppCard style={styles.statCard}>
+            <AppText size="2xl" weight="bold" style={{ color: COLORS.ACCENT }}>
+              {completionPct}%
+            </AppText>
+            <AppText variant="muted" size="xs">Completion</AppText>
+          </AppCard>
+          <AppCard style={styles.statCard}>
+            <AppText size="2xl" weight="bold">
+              {completedCount}/{tasks.length}
+            </AppText>
+            <AppText variant="muted" size="xs">Tasks Done</AppText>
+          </AppCard>
+          <AppCard style={styles.statCard}>
+            <AppText size="2xl" weight="bold" style={{ color: COLORS.SUCCESS }}>
+              {focusHours}h
+            </AppText>
+            <AppText variant="muted" size="xs">Focus Time</AppText>
+          </AppCard>
         </View>
-      ))}
+      </Animated.View>
 
-      {/* ── Daily Activity ────────────────────────────── */}
+      {/* ── 2: Wins ───────────────────────────────────── */}
+      <Animated.View entering={ENTER(2)}>
+        <AppCard style={styles.section}>
+          <AppText weight="semibold" style={styles.sectionTitle}>Wins</AppText>
+          {report.wins.map((win, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <AppText style={styles.winBullet}>♦</AppText>
+              <AppText variant="secondary" style={styles.bulletText}>{win}</AppText>
+            </View>
+          ))}
+        </AppCard>
+      </Animated.View>
+
+      {/* ── 3: Improvements ───────────────────────────── */}
+      <Animated.View entering={ENTER(3)}>
+        <AppCard style={styles.section}>
+          <AppText weight="semibold" style={styles.sectionTitle}>Improvements</AppText>
+          {report.improvements.map((item, i) => (
+            <View key={i} style={styles.bulletRow}>
+              <AppText style={styles.improveBullet}>♦</AppText>
+              <AppText variant="secondary" style={styles.bulletText}>{item}</AppText>
+            </View>
+          ))}
+        </AppCard>
+      </Animated.View>
+
+      {/* ── 4: AI Insights ────────────────────────────── */}
+      <Animated.View entering={ENTER(4)} style={styles.insightsGroup}>
+        <AppText weight="semibold" style={styles.sectionLabel}>AI Insights</AppText>
+        {insights.map(({ label, value, color }) => (
+          <View
+            key={label}
+            style={[styles.insightBox, { borderColor: color, backgroundColor: rgba(color, 0.08) }]}
+          >
+            <AppText size="xs" weight="bold" style={[styles.insightLabel, { color }]}>
+              {label.toUpperCase()}
+            </AppText>
+            <AppText variant="secondary" size="sm">{value}</AppText>
+          </View>
+        ))}
+      </Animated.View>
+
+      {/* ── 5: Daily Activity (conditional) ───────────── */}
       {dailyInsight !== '' && (
-        <AppCard style={styles.section}>
-          <AppText weight="semibold" style={styles.sectionTitle}>Daily Activity</AppText>
-          <AppText variant="secondary">{dailyInsight}</AppText>
-        </AppCard>
+        <Animated.View entering={ENTER(5)}>
+          <AppCard style={styles.section}>
+            <AppText weight="semibold" style={styles.sectionTitle}>Daily Activity</AppText>
+            <AppText variant="secondary">{dailyInsight}</AppText>
+          </AppCard>
+        </Animated.View>
       )}
 
-      {/* ── Priority Analysis ─────────────────────────── */}
+      {/* ── 6: Priority Analysis (conditional) ────────── */}
       {priorityAnalysis !== '' && (
-        <AppCard style={styles.section}>
-          <AppText weight="semibold" style={styles.sectionTitle}>Priority Analysis</AppText>
-          <AppText variant="secondary">{priorityAnalysis}</AppText>
-        </AppCard>
+        <Animated.View entering={ENTER(6)}>
+          <AppCard style={styles.section}>
+            <AppText weight="semibold" style={styles.sectionTitle}>Priority Analysis</AppText>
+            <AppText variant="secondary">{priorityAnalysis}</AppText>
+          </AppCard>
+        </Animated.View>
       )}
 
-      {/* ── Motivational Note ─────────────────────────── */}
-      <LinearGradient
-        colors={[rgba(COLORS.ACCENT, 0.18), rgba(COLORS.ACCENT_SECONDARY, 0.18)]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.motiCard}
-      >
-        <AppText variant="secondary" style={styles.motiText}>
-          {report.motivational_note}
-        </AppText>
-      </LinearGradient>
-    </Animated.View>
+      {/* ── 7: Motivational Note ──────────────────────── */}
+      <Animated.View entering={ENTER(7)}>
+        <LinearGradient
+          colors={[rgba(COLORS.ACCENT, 0.18), rgba(COLORS.ACCENT_SECONDARY, 0.18)]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.motiCard}
+        >
+          <AppText variant="secondary" style={styles.motiText}>
+            {report.motivational_note}
+          </AppText>
+        </LinearGradient>
+      </Animated.View>
+
+    </View>
   );
 }
 
@@ -179,6 +187,8 @@ const styles = StyleSheet.create({
   section: { gap: 10 },
   sectionTitle: { marginBottom: 2 },
   sectionLabel: { paddingHorizontal: 4 },
+
+  insightsGroup: { gap: 12 },
 
   bulletRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   winBullet: { color: COLORS.SUCCESS, lineHeight: 22, marginTop: 1 },

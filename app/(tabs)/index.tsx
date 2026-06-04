@@ -24,7 +24,7 @@ import {
   TaskCard,
   AddTaskModal,
   CarryOverModal,
-  LoadingScreen,
+  TaskListSkeleton,
 } from '@/components';
 import { COLORS, PRIORITY_COLORS } from '@/lib/constants';
 import { useWeekStore } from '@/stores/weekStore';
@@ -190,6 +190,12 @@ export default function ThisWeekScreen() {
         visibilityTime: 4000,
       });
     } else {
+      Toast.show({
+        type: 'success',
+        text1: 'Report generated!',
+        text2: 'Your weekly report is ready',
+        visibilityTime: 3000,
+      });
       await updateStreak(currentWeekId, completionRate);
       router.push('/(tabs)/report');
     }
@@ -211,7 +217,13 @@ export default function ThisWeekScreen() {
   const totalHours = weekTasks.reduce((sum, t) => sum + (t.estimated_hours ?? 0), 0);
   const canGenerate = weekTasks.length > 0 && !reportLoading;
 
-  if (loading && !week) return <LoadingScreen />;
+  if (loading && !week) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <TaskListSkeleton />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

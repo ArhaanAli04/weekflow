@@ -12,7 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppText } from '@/components/AppText';
 import { AppCard } from '@/components/AppCard';
 import { EmptyState } from '@/components/EmptyState';
-import { LoadingScreen } from '@/components/LoadingScreen';
+import { HistoryListSkeleton } from '@/components/SkeletonLoader';
 import { COLORS } from '@/lib/constants';
 import { useWeekStore } from '@/stores/weekStore';
 import { useReportStore } from '@/stores/reportStore';
@@ -175,7 +175,13 @@ export default function HistoryScreen() {
     return ids;
   }, [allWeekIds, gradeFilter, dateFilter, reports]);
 
-  if (loading && allWeekIds.length === 0) return <LoadingScreen />;
+  if (loading && allWeekIds.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <HistoryListSkeleton />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

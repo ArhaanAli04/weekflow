@@ -3,8 +3,8 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { EmptyState } from '@/components/EmptyState';
-import { LoadingScreen } from '@/components/LoadingScreen';
 import { ReportView } from '@/components/ReportView';
+import { ReportSkeleton } from '@/components/SkeletonLoader';
 import { COLORS } from '@/lib/constants';
 import { useReportStore } from '@/stores/reportStore';
 import { useWeekStore } from '@/stores/weekStore';
@@ -23,7 +23,13 @@ export default function ReportScreen() {
     loadReport(currentWeekId);
   }, [currentWeekId]);
 
-  if (loading && !report) return <LoadingScreen />;
+  if (loading && !report) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ReportSkeleton />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>

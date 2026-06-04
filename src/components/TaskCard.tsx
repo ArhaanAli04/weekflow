@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -34,6 +35,9 @@ export function TaskCard({ task, index = 0, onToggle, onDelete }: TaskCardProps)
       checkScale.value = withSpring(1, { damping: 12 });
     });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!task.done) {
+      Toast.show({ type: 'success', text1: 'Task completed!', visibilityTime: 2000 });
+    }
     onToggle(task.id);
   };
 
