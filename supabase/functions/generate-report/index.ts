@@ -55,7 +55,12 @@ Deno.serve(async (req: Request) => {
       supabase.from('reports').select('overall_score, grade, week_id').eq('user_id', user.id).order('created_at', { ascending: false }).limit(4),
     ]);
 
-    if (weekResult.error) throw weekResult.error;
+    if (weekResult.error || !weekResult.data) {
+      return new Response(
+        JSON.stringify({ error: 'Week not found — please reload the app' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
     const week = weekResult.data as Record<string, unknown>;
     const tasks = (tasksResult.data ?? []) as Array<Record<string, unknown>>;
@@ -172,7 +177,7 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no extra te
           motivational_note: reportData.motivationalNote,
           raw_json: reportData,
         },
-        { onConflict: 'week_id' }
+        { onConflict: 'user_id,week_id' }
       )
       .select()
       .single();
@@ -206,7 +211,7 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no extra te
       );
     }
 
-    await supabase.from('weeks').update({ report_generated: true }).eq('id', weekId);
+    await supabase.from('weeks').update({ report_generated: true }).eq('id', weekId).eq('user_id', user.id);
 
     return new Response(JSON.stringify(savedReport), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

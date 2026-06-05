@@ -10,6 +10,7 @@ interface JournalState {
   logs: Record<string, DailyLog>; // keyed by log_date ISO string (e.g. '2025-05-19')
   loading: boolean;
   error: string | null;
+  reset: () => void;
   loadWeekLogs: (weekId: string) => Promise<void>;
   upsertLog: (date: string, content: string) => Promise<void>;
 }
@@ -19,6 +20,13 @@ export const useJournalStore = create<JournalState>()(
     logs: {},
     loading: false,
     error: null,
+
+    reset: () =>
+      set((draft) => {
+        draft.logs = {};
+        draft.loading = false;
+        draft.error = null;
+      }),
 
     loadWeekLogs: async (weekId) => {
       set((draft) => {

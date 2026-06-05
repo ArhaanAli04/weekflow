@@ -17,6 +17,7 @@ interface WeekState {
   lastWeekUnfinished: Task[];
   loading: boolean;
   error: string | null;
+  reset: () => void;
   loadCurrentWeek: () => Promise<void>;
   loadWeek: (weekId: string) => Promise<void>;
   loadAllWeeks: () => Promise<void>;
@@ -40,6 +41,17 @@ export const useWeekStore = create<WeekState>()(
     lastWeekUnfinished: [],
     loading: false,
     error: null,
+
+    reset: () =>
+      set((draft) => {
+        draft.currentWeekId = getWeekId();
+        draft.weeks = {};
+        draft.tasks = {};
+        draft.allWeekIds = [];
+        draft.lastWeekUnfinished = [];
+        draft.loading = false;
+        draft.error = null;
+      }),
 
     loadCurrentWeek: async () => {
       await get().loadWeek(get().currentWeekId);
@@ -117,14 +129,19 @@ export const useWeekStore = create<WeekState>()(
       if (get().weeks[weekId]) return;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data: existing, error } = await api.getWeek(weekId);
-      if (!error && existing) {
+      const { data: existing, error: fetchError } = await api.getWeek(weekId);
+      if (!fetchError && existing) {
         set((draft) => { draft.weeks[weekId] = existing; });
         return;
       }
       const emptyWeek = generateEmptyWeek(weekId, user.id);
       const { data, error: createError } = await api.upsertWeek(emptyWeek);
-      if (!createError && data) {
+      if (createError) {
+        console.error('[weekStore] createWeekIfNotExists failed:', createError.message);
+        set((draft) => { draft.error = createError.message; });
+        return;
+      }
+      if (data) {
         set((draft) => { draft.weeks[weekId] = data; });
       }
     },

@@ -10,6 +10,7 @@ interface ReportState {
   streaks: Streak | null;
   loading: boolean;
   error: string | null;
+  reset: () => void;
   loadReport: (weekId: string) => Promise<void>;
   loadAllReports: () => Promise<void>;
   saveReport: (weekId: string, data: Omit<Report, 'id' | 'created_at' | 'week_id' | 'user_id'>) => Promise<void>;
@@ -25,6 +26,14 @@ export const useReportStore = create<ReportState>()(
     streaks: null,
     loading: false,
     error: null,
+
+    reset: () =>
+      set((draft) => {
+        draft.reports = {};
+        draft.streaks = null;
+        draft.loading = false;
+        draft.error = null;
+      }),
 
     clearError: () =>
       set((draft) => { draft.error = null; }),

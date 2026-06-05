@@ -11,7 +11,7 @@ export async function getWeek(weekId: string) {
 }
 
 export async function upsertWeek(week: Partial<Week> & { id: string; user_id: string }) {
-  return supabase.from('weeks').upsert(week).select().single<Week>();
+  return supabase.from('weeks').upsert(week, { onConflict: 'user_id,id' }).select().single<Week>();
 }
 
 export async function getAllWeeks(userId: string) {
@@ -104,7 +104,7 @@ export async function getReport(weekId: string) {
 export async function saveReport(report: Omit<Report, 'id' | 'created_at'> & { id?: string }) {
   return supabase
     .from('reports')
-    .upsert(report, { onConflict: 'week_id' })
+    .upsert(report, { onConflict: 'user_id,week_id' })
     .select()
     .single<Report>();
 }

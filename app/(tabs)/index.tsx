@@ -194,6 +194,15 @@ export default function ThisWeekScreen() {
   };
 
   const handleGenerateReport = async () => {
+    if (!week) {
+      Toast.show({
+        type: 'error',
+        text1: 'Week not ready',
+        text2: 'Pull down to refresh and try again.',
+        visibilityTime: 3000,
+      });
+      return;
+    }
     if (weekTasks.length === 0) {
       Alert.alert(
         'No tasks yet',
@@ -238,7 +247,7 @@ export default function ThisWeekScreen() {
   const completedCount = weekTasks.filter((t) => t.done).length;
   const completionRate = weekTasks.length > 0 ? Math.round((completedCount / weekTasks.length) * 100) : 0;
   const totalHours = weekTasks.reduce((sum, t) => sum + (t.estimated_hours ?? 0), 0);
-  const canGenerate = !reportLoading;
+  const canGenerate = !reportLoading && !!week;
 
   if (loading && !week) {
     return (

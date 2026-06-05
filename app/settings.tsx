@@ -68,35 +68,46 @@ export default function SettingsScreen() {
     await applyNotificationPrefs(newPrefs).catch(() => {});
   };
 
+  const doClearCache = () => {
+    void clearAllLocalCache().then(() => {
+      Toast.show({ type: 'success', text1: 'Cache cleared', visibilityTime: 2000 });
+    });
+  };
+
   const handleClearCache = () => {
+    // Alert.alert is a silent no-op on web — bypass it entirely.
+    if (Platform.OS === 'web') {
+      doClearCache();
+      return;
+    }
     Alert.alert(
       'Clear local cache',
       'This will discard any queued offline changes. Continue?',
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await clearAllLocalCache();
-            Toast.show({ type: 'success', text1: 'Cache cleared', visibilityTime: 2000 });
-          },
-        },
+        { text: 'Clear', style: 'destructive', onPress: doClearCache },
       ],
     );
   };
 
+  const doSignOut = () => {
+    console.log('[Settings] signOut called');
+    void signOut().then(() => {
+      console.log('[Settings] signOut complete, navigating to login');
+      router.replace('/(auth)/login');
+    });
+  };
+
   const handleSignOut = () => {
+    console.log('[Settings] handleSignOut triggered');
+    // Alert.alert is a silent no-op on web — bypass it entirely.
+    if (Platform.OS === 'web') {
+      doSignOut();
+      return;
+    }
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: async () => {
-          await signOut();
-          router.replace('/(auth)/login');
-        },
-      },
+      { text: 'Sign out', style: 'destructive', onPress: doSignOut },
     ]);
   };
 
@@ -109,7 +120,7 @@ export default function SettingsScreen() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <AppText size="xl" weight="bold">Settings</AppText>
-          <Pressable onPress={() => router.back()} hitSlop={12} style={styles.closeBtn}>
+          <Pressable onPress={() => router.push('/(tabs)')} hitSlop={12} style={styles.closeBtn}>
             <Ionicons name="close" size={22} color={COLORS.TEXT_SECONDARY} />
           </Pressable>
         </View>

@@ -4,6 +4,9 @@ import { type AuthError, type Session, type User } from '@supabase/supabase-js';
 import { supabase, signIn as apiSignIn, signUp as apiSignUp } from '@/lib/supabase';
 import { Profile, NotificationPrefs } from '@/types';
 import * as api from '@/lib/api';
+import { useWeekStore } from '@/stores/weekStore';
+import { useReportStore } from '@/stores/reportStore';
+import { useJournalStore } from '@/stores/journalStore';
 
 type ProfilePatch = Partial<Pick<Profile, 'display_name' | 'notification_prefs'>>;
 
@@ -102,6 +105,9 @@ export const useAuthStore = create<AuthState>()(
 
     signOut: async () => {
       await supabase.auth.signOut();
+      useWeekStore.getState().reset();
+      useReportStore.getState().reset();
+      useJournalStore.getState().reset();
       set((draft) => {
         draft.session = null;
         draft.user = null;
