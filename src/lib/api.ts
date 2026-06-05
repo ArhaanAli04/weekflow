@@ -1,6 +1,6 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 import { supabase } from './supabase';
-import { Week, Task, DailyLog, Report, Streak, CreateTaskInput } from '@/types';
+import { Week, Task, DailyLog, Report, Streak, CreateTaskInput, Profile, NotificationPrefs } from '@/types';
 
 type TaskPatch = Partial<Omit<Task, 'id' | 'user_id' | 'created_at' | 'week_id'>>;
 
@@ -120,6 +120,22 @@ export async function getAllReports(userId: string) {
 
 export async function generateReport(weekId: string) {
   return supabase.functions.invoke('generate-report', { body: { weekId } });
+}
+
+// ─── Profiles ────────────────────────────────────────────────────────────────
+
+type ProfilePatch = Partial<Pick<Profile, 'display_name' | 'notification_prefs'>>;
+
+export async function getProfile(userId: string) {
+  return supabase.from('profiles').select('*').eq('id', userId).single<Profile>();
+}
+
+export async function upsertProfile(id: string, patch: ProfilePatch) {
+  return supabase
+    .from('profiles')
+    .upsert({ id, ...patch }, { onConflict: 'id' })
+    .select()
+    .single<Profile>();
 }
 
 // ─── Streaks ─────────────────────────────────────────────────────────────────

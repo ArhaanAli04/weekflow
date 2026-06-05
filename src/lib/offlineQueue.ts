@@ -95,3 +95,11 @@ export async function dequeueLogs(): Promise<PendingLog[]> {
   await storeRemove(LOG_QUEUE_KEY);
   return queue;
 }
+
+export async function clearAllLocalCache(): Promise<void> {
+  await Promise.all([
+    storeRemove(TOGGLE_QUEUE_KEY),
+    storeRemove(LOG_QUEUE_KEY),
+    storeRemove('carryover_shown_week'),
+  ]);
+}

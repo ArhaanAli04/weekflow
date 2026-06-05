@@ -6,9 +6,17 @@ import Toast from 'react-native-toast-message';
 import { onAuthStateChange } from '@/lib/supabase';
 import { useAuthStore } from '@/stores/authStore';
 import { LoadingScreen } from '@/components/LoadingScreen';
+import {
+  setupNotificationHandler,
+  requestPermissions,
+  applyNotificationPrefs,
+  DEFAULT_NOTIFICATION_PREFS,
+} from '@/lib/notifications';
+
+setupNotificationHandler();
 
 export default function RootLayout() {
-  const { isLoading, initialize, setSession } = useAuthStore();
+  const { isLoading, initialize, setSession, session, profile } = useAuthStore();
 
   useEffect(() => {
     initialize();
@@ -19,6 +27,16 @@ export default function RootLayout() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Once auth initializes, request notification permissions and apply saved prefs.
+  useEffect(() => {
+    if (!isLoading && session) {
+      const prefs = profile?.notification_prefs ?? DEFAULT_NOTIFICATION_PREFS;
+      requestPermissions()
+        .then((granted) => { if (granted) return applyNotificationPrefs(prefs); })
+        .catch(() => {});
+    }
+  }, [isLoading]);
 
   if (isLoading) return <LoadingScreen />;
 

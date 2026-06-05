@@ -2,10 +2,15 @@ export type TaskCategory = 'Work' | 'Health' | 'Personal' | 'Learning' | 'Other'
 export type TaskPriority = 'High' | 'Medium' | 'Low';
 export type WeekGrade = 'S' | 'A' | 'B' | 'C' | 'D';
 
+export interface NotificationPrefs {
+  weekly_report: boolean;
+  midweek_checkin: boolean;
+}
+
 export interface Profile {
   id: string;
-  display_name: string;
-  notification_prefs: Record<string, unknown>;
+  display_name: string | null;
+  notification_prefs: NotificationPrefs | null;
   created_at: string;
 }
 

@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { type AuthError, type Session, type User } from '@supabase/supabase-js';
 import { supabase, signIn as apiSignIn, signUp as apiSignUp } from '@/lib/supabase';
-import { Profile } from '@/types';
+import { Profile, NotificationPrefs } from '@/types';
+import * as api from '@/lib/api';
+
+type ProfilePatch = Partial<Pick<Profile, 'display_name' | 'notification_prefs'>>;
 
 interface AuthState {
   session: Session | null;
@@ -12,13 +15,15 @@ interface AuthState {
   initialize: () => Promise<void>;
   setSession: (session: Session | null) => void;
   setProfile: (profile: Profile | null) => void;
+  loadProfile: () => Promise<void>;
+  updateProfile: (patch: ProfilePatch) => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     session: null,
     user: null,
     profile: null,
@@ -26,9 +31,16 @@ export const useAuthStore = create<AuthState>()(
 
     initialize: async () => {
       const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user ?? null;
+      let profile: Profile | null = null;
+      if (user) {
+        const { data } = await api.getProfile(user.id);
+        profile = data ?? null;
+      }
       set((draft) => {
         draft.session = session;
-        draft.user = session?.user ?? null;
+        draft.user = user;
+        draft.profile = profile;
         draft.isLoading = false;
       });
     },
@@ -44,6 +56,28 @@ export const useAuthStore = create<AuthState>()(
       set((draft) => {
         draft.profile = profile;
       }),
+
+    loadProfile: async () => {
+      const user = get().user;
+      if (!user) return;
+      const { data } = await api.getProfile(user.id);
+      set((draft) => { draft.profile = data ?? null; });
+    },
+
+    updateProfile: async (patch) => {
+      const user = get().user;
+      if (!user) return;
+      const prev = get().profile;
+      if (prev) {
+        set((draft) => { draft.profile = { ...prev, ...patch }; });
+      }
+      const { data, error } = await api.upsertProfile(user.id, patch);
+      if (error) {
+        set((draft) => { draft.profile = prev; });
+      } else if (data) {
+        set((draft) => { draft.profile = data; });
+      }
+    },
 
     signIn: async (email, password) => {
       const { user, session, error } = await apiSignIn(email, password);
