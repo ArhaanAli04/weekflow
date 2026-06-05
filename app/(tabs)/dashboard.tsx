@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+export { RouteErrorFallback as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {

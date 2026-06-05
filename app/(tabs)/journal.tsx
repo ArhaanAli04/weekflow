@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+export { RouteErrorFallback as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import {
   View,
   ScrollView,

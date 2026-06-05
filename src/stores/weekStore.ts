@@ -4,6 +4,8 @@ import { Week, Task, CreateTaskInput } from '@/types';
 import * as api from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { getWeekId, generateEmptyWeek } from '@/utils/weekUtils';
+import { getConnected } from '@/lib/networkState';
+import { readCache, writeCache, enqueueToggle } from '@/lib/offlineQueue';
 
 type WeekPatch = Partial<Omit<Week, 'id' | 'user_id' | 'created_at'>>;
 
@@ -83,13 +85,27 @@ export const useWeekStore = create<WeekState>()(
         api.getTasksForWeek(weekId),
       ]);
       if (weekResult.error || tasksResult.error) {
-        set((draft) => {
-          draft.loading = false;
-          draft.error =
-            weekResult.error?.message ?? tasksResult.error?.message ?? 'Failed to load week';
-        });
+        // Fall back to locally cached data rather than showing an error screen
+        const cachedWeek = await readCache<Week>(`cache_week_${weekId}`);
+        const cachedTasks = await readCache<Task[]>(`cache_tasks_${weekId}`);
+        if (cachedWeek) {
+          set((draft) => {
+            draft.loading = false;
+            draft.weeks[weekId] = cachedWeek;
+            draft.tasks[weekId] = cachedTasks ?? [];
+          });
+        } else {
+          set((draft) => {
+            draft.loading = false;
+            draft.error =
+              weekResult.error?.message ?? tasksResult.error?.message ?? 'Failed to load week';
+          });
+        }
         return;
       }
+      // Cache the successful result for offline fallback
+      if (weekResult.data) await writeCache(`cache_week_${weekId}`, weekResult.data);
+      await writeCache(`cache_tasks_${weekId}`, tasksResult.data ?? []);
       set((draft) => {
         draft.loading = false;
         if (weekResult.data) draft.weeks[weekId] = weekResult.data;
@@ -145,6 +161,7 @@ export const useWeekStore = create<WeekState>()(
       if (!task) return;
       const done = !task.done;
       const done_at = done ? new Date().toISOString() : null;
+      // Optimistic update always applied immediately
       set((draft) => {
         const t = (draft.tasks[weekId] ?? []).find((t) => t.id === taskId);
         if (t) {
@@ -152,6 +169,11 @@ export const useWeekStore = create<WeekState>()(
           t.done_at = done_at;
         }
       });
+      if (!getConnected()) {
+        // Queue for sync when connection restores; keep optimistic state
+        await enqueueToggle({ taskId, weekId, done, done_at });
+        return;
+      }
       const { error } = await api.updateTask(taskId, { done, done_at });
       if (error) {
         set((draft) => {

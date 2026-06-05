@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   ScrollView,
@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  RefreshControl,
+  Alert,
 } from 'react-native';
+export { RouteErrorFallback as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import Toast from 'react-native-toast-message';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -90,6 +93,7 @@ export default function ThisWeekScreen() {
   const [showModal, setShowModal] = useState(false);
   const [showCarryOver, setShowCarryOver] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const prevWeekId = getPreviousWeekId(currentWeekId);
 
@@ -114,6 +118,17 @@ export default function ThisWeekScreen() {
     })();
     loadStreak();
     loadWeekLogs(currentWeekId);
+  }, [currentWeekId]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      loadCurrentWeek(),
+      loadTasksForWeek(currentWeekId),
+      loadStreak(),
+      loadWeekLogs(currentWeekId),
+    ]);
+    setRefreshing(false);
   }, [currentWeekId]);
 
   const handleReviewLastWeek = async () => {
@@ -179,6 +194,14 @@ export default function ThisWeekScreen() {
   };
 
   const handleGenerateReport = async () => {
+    if (weekTasks.length === 0) {
+      Alert.alert(
+        'No tasks yet',
+        'Add some tasks first before generating your report.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await generateReport(currentWeekId);
     const { error: genError } = useReportStore.getState();
@@ -215,7 +238,7 @@ export default function ThisWeekScreen() {
   const completedCount = weekTasks.filter((t) => t.done).length;
   const completionRate = weekTasks.length > 0 ? Math.round((completedCount / weekTasks.length) * 100) : 0;
   const totalHours = weekTasks.reduce((sum, t) => sum + (t.estimated_hours ?? 0), 0);
-  const canGenerate = weekTasks.length > 0 && !reportLoading;
+  const canGenerate = !reportLoading;
 
   if (loading && !week) {
     return (
@@ -227,7 +250,18 @@ export default function ThisWeekScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.ACCENT}
+            colors={[COLORS.ACCENT]}
+          />
+        }
+      >
 
         {/* ── Header ──────────────────────────────────── */}
         <View style={styles.header}>

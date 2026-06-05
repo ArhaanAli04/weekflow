@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo } from 'react';
-import { View, ScrollView, StyleSheet, Pressable } from 'react-native';
+import { useCallback, useEffect, useState, useMemo } from 'react';
+import { View, ScrollView, StyleSheet, Pressable, RefreshControl } from 'react-native';
+export { RouteErrorFallback as ErrorBoundary } from '@/components/ScreenErrorBoundary';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Animated, {
@@ -150,11 +151,18 @@ export default function HistoryScreen() {
 
   const [gradeFilter, setGradeFilter] = useState<GradeFilter>('All');
   const [dateFilter, setDateFilter] = useState<DateRangeFilter>('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadAllWeeks();
     loadAllTasks();
     loadAllReports();
+  }, []);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([loadAllWeeks(), loadAllTasks(), loadAllReports()]);
+    setRefreshing(false);
   }, []);
 
   const filtered = useMemo(() => {
@@ -189,6 +197,14 @@ export default function HistoryScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[0]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={COLORS.ACCENT}
+            colors={[COLORS.ACCENT]}
+          />
+        }
       >
         {/* ── Sticky header + filters ─────────────────── */}
         <View style={styles.headerBlock}>
