@@ -106,4 +106,3 @@ supabase secrets set ANTHROPIC_API_KEY=your-key-here
 | Anthropic API | ~$0.01 per report |
 | Expo | Free |
 
-Built by Arhaan Ali
