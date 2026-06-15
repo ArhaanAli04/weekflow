@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '@weekflow/shared/stores';
 import AuthGuard from './components/layout/AuthGuard';
 import AppLayout from './components/layout/AppLayout';
@@ -14,7 +15,7 @@ import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
 
 function GuestGate() {
-  const session = useAuthStore((s) => s.session);
+  const session = useAuthStore(useShallow((s) => s.session));
   const isLoading = useAuthStore((s) => s.isLoading);
   if (isLoading) return <LoadingSpinner fullScreen />;
   if (session) return <Navigate to="/" replace />;
