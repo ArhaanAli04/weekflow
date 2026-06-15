@@ -10,7 +10,7 @@ import ThisWeekPage from './pages/ThisWeekPage';
 import JournalPage from './pages/JournalPage';
 import ReportPage from './pages/ReportPage';
 import HistoryPage from './pages/HistoryPage';
-import WeekDetailPage from './pages/history/WeekDetailPage';
+import HistoryDetailPage from './pages/HistoryDetailPage';
 import DashboardPage from './pages/DashboardPage';
 import SettingsPage from './pages/SettingsPage';
 
@@ -36,7 +36,7 @@ export function AppRouter() {
           <Route path="/journal" element={<JournalPage />} />
           <Route path="/report" element={<ReportPage />} />
           <Route path="/history" element={<HistoryPage />} />
-          <Route path="/history/:weekId" element={<WeekDetailPage />} />
+          <Route path="/history/:weekId" element={<HistoryDetailPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
