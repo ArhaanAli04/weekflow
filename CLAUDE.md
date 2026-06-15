@@ -179,6 +179,24 @@ All tables have RLS enabled and are scoped by `user_id = auth.uid()`.
 - Stores never import from each other. If cross-store data is needed, do it in a component or hook.
 - `weekStore` is the primary store — it holds `currentWeekId`, `weeks`, `tasks`.
 
+### Zustand Selector Rules (React 19 + useSyncExternalStore)
+
+Any selector that returns an **object or array** must be wrapped with `useShallow` from `zustand/react/shallow`. Without it, React 19's `useSyncExternalStore` detects a new reference on every render and throws a "Maximum update depth exceeded" / "getSnapshot should be cached" error.
+
+```typescript
+import { useShallow } from 'zustand/react/shallow';
+
+// CORRECT — object and array selectors wrapped
+const week  = useWeekStore(useShallow((s) => s.weeks[s.currentWeekId]));
+const tasks = useWeekStore(useShallow((s) => s.tasks[s.currentWeekId] ?? []));
+const logs  = useJournalStore(useShallow((s) => s.logs));
+
+// WRONG — new [] created on every call, triggers infinite loop
+const tasks = useWeekStore((s) => s.tasks[weekId] ?? []);
+```
+
+Selectors returning **primitives** (string, number, boolean) or **store action functions** do not need `useShallow` — they compare correctly with `===`.
+
 ---
 
 ## Week ID Convention
