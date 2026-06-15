@@ -1,8 +1,8 @@
-// TODO: Weekly Report — generate button, score/grade display, wins/improvements, AI sections
 export default function ReportPage() {
   return (
     <div className="p-6">
-      <p className="text-white">Report — coming soon</p>
+      <h1 className="text-xl font-bold text-white">Report</h1>
+      <p className="mt-2 text-sm text-secondary">Coming soon</p>
     </div>
   );
 }

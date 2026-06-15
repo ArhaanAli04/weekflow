@@ -1,8 +1,80 @@
-// TODO: Signup page — display name + email/password form, link to /login
+import { FormEvent, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '@weekflow/shared/stores';
+import Button from '../../components/ui/Button';
+import Input from '../../components/ui/Input';
+
 export default function SignupPage() {
+  const signUp = useAuthStore((s) => s.signUp);
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const { error: authError } = await signUp(email, password, displayName);
+    if (authError) setError(authError.message);
+    setLoading(false);
+  }
+
   return (
-    <div className="flex h-screen items-center justify-center bg-background">
-      <p className="text-white">Sign up — coming soon</p>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6">
+      <div className="w-full max-w-sm space-y-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white">WeekFlow</h1>
+          <p className="mt-1 text-sm text-secondary">Create your account</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Display Name"
+            type="text"
+            placeholder="Your name"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            autoComplete="name"
+            required
+          />
+          <Input
+            label="Email"
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            required
+          />
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          {error && <p className="text-sm text-danger">{error}</p>}
+          <Button
+            type="submit"
+            loading={loading}
+            disabled={!displayName || !email || !password}
+            className="w-full"
+          >
+            Sign Up
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-secondary">
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-accent hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

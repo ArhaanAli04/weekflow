@@ -1,8 +1,8 @@
-// TODO: History — list of past weeks with grade badge, completion %, streak indicator
 export default function HistoryPage() {
   return (
     <div className="p-6">
-      <p className="text-white">History — coming soon</p>
+      <h1 className="text-xl font-bold text-white">History</h1>
+      <p className="mt-2 text-sm text-secondary">Coming soon</p>
     </div>
   );
 }
