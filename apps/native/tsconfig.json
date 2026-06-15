@@ -1,0 +1,29 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@weekflow/shared/stores": ["../../packages/shared/src/stores/index.ts"],
+      "@weekflow/shared/types": ["../../packages/shared/src/types/index.ts"],
+      "@weekflow/shared/lib/supabase": ["../../packages/shared/src/lib/supabase.ts"],
+      "@weekflow/shared/lib/api": ["../../packages/shared/src/lib/api.ts"],
+      "@weekflow/shared/lib/constants": ["../../packages/shared/src/lib/constants.ts"],
+      "@weekflow/shared/lib/networkState": ["../../packages/shared/src/lib/networkState.ts"],
+      "@weekflow/shared/lib/offlineQueue": ["../../packages/shared/src/lib/offlineQueue.ts"],
+      "@weekflow/shared/lib/storage": ["../../packages/shared/src/lib/storage.ts"],
+      "@weekflow/shared/utils/weekUtils": ["../../packages/shared/src/utils/weekUtils.ts"],
+      "@weekflow/shared/utils/reportUtils": ["../../packages/shared/src/utils/reportUtils.ts"]
+    }
+  },
+  "exclude": ["node_modules", "../../supabase/functions", "**/__tests__/**"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ]
+}

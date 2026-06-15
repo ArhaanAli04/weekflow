@@ -1,0 +1,47 @@
+{
+  "name": "@weekflow/shared",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "immer": "^11.1.8",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.11",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.tsx?$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "strict": true,
+            "noImplicitAny": true,
+            "types": ["jest"]
+          }
+        }
+      ]
+    }
+  },
+  "exports": {
+    "./types": "./src/types/index.ts",
+    "./stores": "./src/stores/index.ts",
+    "./lib/supabase": "./src/lib/supabase.ts",
+    "./lib/api": "./src/lib/api.ts",
+    "./lib/constants": "./src/lib/constants.ts",
+    "./lib/networkState": "./src/lib/networkState.ts",
+    "./lib/offlineQueue": "./src/lib/offlineQueue.ts",
+    "./lib/storage": "./src/lib/storage.ts",
+    "./utils/weekUtils": "./src/utils/weekUtils.ts",
+    "./utils/reportUtils": "./src/utils/reportUtils.ts"
+  }
+}
