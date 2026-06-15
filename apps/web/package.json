@@ -5,8 +5,10 @@
   "type": "module",
   "dependencies": {
     "@weekflow/shared": "*",
+    "lucide-react": "^1.18.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^6.28.0",
     "recharts": "^2.15.0"
   },
