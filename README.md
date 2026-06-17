@@ -11,7 +11,7 @@ Plan your week, log daily life activities, track focus time, and receive an AI-g
 | App | Stack | Status |
 |---|---|---|
 | **Native** | React Native + Expo SDK 56 | Complete |
-| **PWA** | React + Vite + Tailwind | Live at [weekflow-12p.pages.dev |
+| **PWA** | React + Vite + Tailwind | |
 
 Both apps share the same Supabase backend, Edge Function, and business logic via `@weekflow/shared`.
 
