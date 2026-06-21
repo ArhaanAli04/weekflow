@@ -147,7 +147,9 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no extra te
 - nextWeekGoal: string — one concrete, measurable goal for next week based on what happened this week
 - motivationalNote: string — encouraging closing note, 1-2 sentences
 - dailyActivityInsight: string — directly reference specific journal entries by date; identify patterns, highlight standout activities, note energy or mood shifts across the week
-- priorityAnalysis: string — explicitly analyse the High/Medium/Low priority completion rates shown above; did they focus on the right things or get distracted by lower-priority work?`;
+- priorityAnalysis: string — explicitly analyse the High/Medium/Low priority completion rates shown above; did they focus on the right things or get distracted by lower-priority work?
+
+Respond with raw JSON only. Do not wrap it in markdown code fences or backticks. Do not include any text before or after the JSON object.`;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -158,7 +160,12 @@ Respond with ONLY a raw JSON object — no markdown, no code fences, no extra te
     });
 
     const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
-    const reportData = JSON.parse(responseText) as Record<string, unknown>;
+    const cleanedText = responseText
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim();
+    const reportData = JSON.parse(cleanedText) as Record<string, unknown>;
 
     const { data: savedReport, error: saveError } = await supabase
       .from('reports')
