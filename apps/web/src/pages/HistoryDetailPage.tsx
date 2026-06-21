@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, CheckCircle, Circle } from 'lucide-react';
+import { ChevronLeft, CheckCircle, Circle, Sparkles } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import type { DailyLog } from '@weekflow/shared/types';
 import { useWeekStore, useReportStore, useJournalStore } from '@weekflow/shared/stores';
@@ -9,6 +9,7 @@ import { getDatesInWeek, getDayLabel, getWeekLabel } from '@weekflow/shared/util
 import Card from '../components/ui/Card';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import ReportView from '../components/report/ReportView';
+import { toast } from '../components/ui/Toast';
 
 const ENERGY_COLORS = ['#EF4444', '#F97316', '#F59E0B', '#84CC16', '#22C55E'] as const;
 
@@ -47,6 +48,9 @@ export default function HistoryDetailPage() {
 
   const report = useReportStore(useShallow((s) => s.reports[weekId]));
   const loadReport = useReportStore((s) => s.loadReport);
+  const generating = useReportStore((s) => s.loading);
+  const generateReport = useReportStore((s) => s.generateReport);
+  const clearReportError = useReportStore((s) => s.clearError);
 
   const logs = useJournalStore(useShallow((s) => s.logs));
   const loadWeekLogs = useJournalStore((s) => s.loadWeekLogs);
@@ -61,6 +65,18 @@ export default function HistoryDetailPage() {
     ]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekId]);
+
+  async function handleGenerateReport() {
+    await generateReport(weekId);
+    const { error } = useReportStore.getState();
+    if (error) {
+      toast.error(error);
+      clearReportError();
+    } else {
+      toast.success('Report generated!');
+      void loadReport(weekId);
+    }
+  }
 
   if (!weekId) return null;
 
@@ -109,6 +125,27 @@ export default function HistoryDetailPage() {
             <p className="py-2 text-center text-sm text-muted">
               No report generated for this week
             </p>
+            {tasks.length > 0 && (
+              <button
+                type="button"
+                onClick={() => void handleGenerateReport()}
+                disabled={generating}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
+                style={{ background: 'linear-gradient(to right, #6366F1, #EC4899)' }}
+              >
+                {generating ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Analysing your week...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generate Report
+                  </>
+                )}
+              </button>
+            )}
           </Card>
         )}
 
