@@ -1,8 +1,19 @@
 # WeekFlow
 
-A personal activity tracker and AI-powered weekly performance app built with React Native + Expo.
+A personal activity tracker and AI-powered weekly performance app — available as both a React Native mobile app and a Progressive Web App.
 
 Plan your week, log daily life activities, track focus time, and receive an AI-generated performance report every week — graded, analysed, and personalised to your actual data.
+
+---
+
+## Apps
+
+| App | Stack | Status |
+|---|---|---|
+| **Native** | React Native + Expo SDK 56 | Complete |
+| **PWA** | React + Vite + Tailwind | |
+
+Both apps share the same Supabase backend, Edge Function, and business logic via `@weekflow/shared`.
 
 ---
 
@@ -21,80 +32,112 @@ Plan your week, log daily life activities, track focus time, and receive an AI-g
 
 ---
 
+## Monorepo Structure
+
+```
+weekflow/
+├── packages/
+│   └── shared/                  ← @weekflow/shared
+│       └── src/
+│           ├── types/            ← TypeScript interfaces
+│           ├── utils/            ← weekUtils, reportUtils
+│           ├── lib/              ← Supabase client, api helpers, constants
+│           └── stores/           ← Zustand stores (auth, week, report, journal)
+├── apps/
+│   ├── native/                  ← React Native + Expo
+│   │   ├── app/                 ← Expo Router screens
+│   │   └── src/components/      ← React Native components
+│   └── web/                     ← Vite PWA
+│       └── src/
+│           ├── pages/           ← React Router pages
+│           └── components/      ← Tailwind components
+└── supabase/
+    └── functions/
+        └── generate-report/     ← Deno Edge Function → Claude API
+```
+
+---
+
 ## Tech Stack
 
+### Shared
 | Layer | Technology |
 |---|---|
-| Mobile | React Native + Expo SDK 56 |
 | Language | TypeScript (strict mode) |
-| Navigation | Expo Router |
 | Database | Supabase (PostgreSQL + Auth) |
 | AI Reports | Anthropic Claude API via Supabase Edge Function |
 | State | Zustand + Immer |
+
+### Native App
+| Layer | Technology |
+|---|---|
+| Framework | React Native + Expo SDK 56 |
+| Navigation | Expo Router |
 | Charts | Victory |
 | Animations | React Native Reanimated |
+
+### PWA
+| Layer | Technology |
+|---|---|
+| Framework | React 19 + Vite |
+| Styling | Tailwind CSS |
+| Routing | React Router v6 |
+| Charts | Recharts |
+| Deploy | Cloudflare Pages |
 
 ---
 
 ## Architecture
 
 - All AI calls go through a **Supabase Edge Function** — the Anthropic API key is never exposed client-side
-- Every table has **Row Level Security** scoped to `auth.uid() = user_id` — multi-user ready from day one
-- Zustand stores use **optimistic updates** with offline queue fallback via SecureStore
+- Every table has **Row Level Security** scoped to `auth.uid() = user_id` — multi-user ready
 - Weeks use a **composite primary key** `(user_id, id)` to support multiple users on the same week date
-
----
-
-## Project Structure
-
-```
-weekflow/
-├── app/                  # Expo Router screens
-│   ├── (auth)/           # Login, Signup
-│   ├── (tabs)/           # This Week, Journal, Report, History, Dashboard
-│   └── history/[weekId]  # Past week drilldown
-├── src/
-│   ├── components/       # Shared UI components
-│   ├── stores/           # Zustand stores (auth, week, report, journal)
-│   ├── lib/              # Supabase client, API helpers, constants
-│   ├── types/            # TypeScript interfaces
-│   └── utils/            # Week utilities, report helpers
-└── supabase/
-    └── functions/
-        └── generate-report/  # Deno Edge Function → Claude API
-```
+- Zustand stores use **optimistic updates** with offline queue fallback
+- All shared logic lives in `@weekflow/shared` — zero duplication between native and web
 
 ---
 
 ## Getting Started
 
 ```bash
-# Install dependencies
+# Install all workspace dependencies from root
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Add your Supabase URL and anon key to .env
+# Start native app
+cd apps/native && npx expo start
 
-# Start development server
-npx expo start --web
+# Start PWA locally
+cd apps/web && npm run dev
 
-# Run tests
-npx jest
+# Run shared logic tests
+npm test -w @weekflow/shared
 ```
 
-For the AI reports to work, deploy the Edge Function and set your Anthropic API key as a Supabase secret:
+**Environment variables:**
 
+Native (`apps/native/.env`):
+```
+EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Web (`apps/web/.env`):
+```
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
+
+For AI reports, deploy the Edge Function and set the Anthropic API key:
 ```bash
 supabase functions deploy generate-report
-supabase secrets set ANTHROPIC_API_KEY=your-key-here
+supabase secrets set ANTHROPIC_API_KEY=your-key
 ```
 
 ---
 
 ## Database
 
-7 Supabase tables: `profiles`, `weeks`, `tasks`, `daily_logs`, `reports`, `streaks`, `feature_flags` — all with RLS enabled.
+7 Supabase tables with RLS enabled: `profiles`, `weeks`, `tasks`, `daily_logs`, `reports`, `streaks`, `feature_flags`
 
 ---
 
@@ -104,5 +147,9 @@ supabase secrets set ANTHROPIC_API_KEY=your-key-here
 |---|---|
 | Supabase | Free tier |
 | Anthropic API | ~$0.01 per report |
-| Expo | Free |
+| Cloudflare Pages | Free |
+| Expo (development) | Free |
+
+---
+
 
