@@ -143,7 +143,7 @@ export default function ThisWeekPage() {
   function adjustFocusHours(delta: number) {
     if (!week) return;
     const next = Math.min(
-      24,
+      80,
       Math.max(0, parseFloat((week.focus_hours + delta).toFixed(1)))
     );
     void updateWeek(currentWeekId, { focus_hours: next });
@@ -356,7 +356,7 @@ export default function ThisWeekPage() {
               <button
                 type="button"
                 onClick={() => adjustFocusHours(VALIDATION.FOCUS_HOURS_STEP)}
-                disabled={timerRunning || (week?.focus_hours ?? 0) >= 24}
+                disabled={timerRunning || (week?.focus_hours ?? 0) >= 80}
                 className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-background text-lg text-white transition-colors hover:border-white/20 disabled:opacity-30"
               >
                 +

@@ -189,7 +189,7 @@ export default function ThisWeekScreen() {
 
   const handleAdjustHours = (delta: number) => {
     if (!week) return;
-    const next = Math.max(0, +((week.focus_hours ?? 0) + delta).toFixed(1));
+    const next = Math.min(80, Math.max(0, +((week.focus_hours ?? 0) + delta).toFixed(1)));
     updateWeek(currentWeekId, { focus_hours: next });
   };
 
